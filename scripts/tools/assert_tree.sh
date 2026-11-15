@@ -114,6 +114,11 @@ case "$cmd" in
     xmlvalid)
         python3 -c "import xml.dom.minidom, sys; xml.dom.minidom.parse(sys.argv[1])" "$1"
         ;;
+    # wfcount <workflow.yml> <期望组合形态行数> —— matrix include 行数（YAML 解析）
+    wfcount)
+        n=$(python3 -c "import yaml,sys; d=yaml.safe_load(open(sys.argv[1])); print(len(d['jobs']['matrix']['strategy']['matrix']['include']))" "$1")
+        [ "$n" -eq "$2" ]
+        ;;
     # rpath <elf> <子串> —— RUNPATH 值含该子串
     rpath)
         readelf -d "$1" 2>/dev/null | grep RUNPATH | grep -q "$2"
