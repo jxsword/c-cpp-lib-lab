@@ -1,0 +1,57 @@
+# run-output.yml —— 独立 dispatch：RV 运行输出采集（F-09-05；S8；与 analyze 互不依赖，A1）
+# RV-1..RV-4 的 stdout/stderr/退出码 → reports/<tag>/run/<标签>.txt + artifact
+# + $GITHUB_STEP_SUMMARY 表格展示 --self-test 与 info 实际输出（A4）。
+name: run-output
+
+on:
+  workflow_dispatch:
+    inputs:
+      os: { description: 'linux|macos|windows', default: 'linux' }
+      group: { description: 'native|cmake|make/gnu', default: 'native' }
+      tag: { description: '组合标签', default: 'linux_gcc_x64_Release' }
+      kind: { description: 'static|shared', default: 'shared' }
+
+jobs:
+  run-output:
+    runs-on: ${{ inputs.os == 'linux' && 'ubuntu-latest' || inputs.os == 'macos' && 'macos-14' || 'windows-latest' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build target combo (RV step runs the binary; not analysis)
+        shell: bash
+        run: |
+          TAG="${{ inputs.tag }}"
+          REST="${TAG%_*}"; CFG="${REST##*_}"
+          case "${{ inputs.os }}/${{ inputs.group }}" in
+            linux/native)  ARCH="${TAG##*_}"; ./scripts/linux/native.sh "$ARCH" "$CFG" "${{ inputs.kind }}" ;;
+            linux/cmake)   ARCH="${TAG##*_}"; ./scripts/linux/cmake.sh "$ARCH" "$CFG" "${{ inputs.kind }}" ;;
+            *) echo "SKIP: handled by its runner workflow"; exit 0 ;;
+          esac
+      - name: RV capture (stdout/stderr/exit code)
+        id: rv
+        if: always()
+        shell: bash
+        run: |
+          TAG="${{ inputs.tag }}"
+          case "${{ inputs.os }}" in
+            linux) ./scripts/linux/run.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
+            macos) ./scripts/macos/run.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
+            windows) pwsh -File scripts/windows/run.ps1 -Tag "$TAG" -Kind "${{ inputs.kind }}" -Group "${{ inputs.group }}" ;;
+          esac
+      - name: Publish program output to Job Summary (A4: self-test + info 实际文本)
+        if: always()
+        shell: bash
+        run: |
+          F="reports/${{ inputs.tag }}/run/${{ inputs.tag }}_${{ inputs.group }}_${{ inputs.kind }}.txt"
+          {
+            echo '## calctool 运行输出 · ${{ inputs.tag }} / ${{ inputs.kind }}'
+            echo '```'
+            cat "$F" 2>/dev/null || echo '(run output not generated on this runner)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload run output artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-${{ inputs.os }}-${{ inputs.group }}-${{ inputs.tag }}-${{ inputs.kind }}
+          path: reports/**/run/*.txt
+          if-no-files-found: ignore
