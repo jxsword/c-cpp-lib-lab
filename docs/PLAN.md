@@ -417,7 +417,7 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [x] `F-01-02` · 公共 API 与 `.def`
 - [x] `F-01-03` · 库核心
 - [x] `F-01-04` · 库报告与资源
-- [ ] `F-01-05` · CLI 主程序
+- [x] `F-01-05` · CLI 主程序
 - [ ] `F-01-06` · 四模式冒烟 + 反例
 - [ ] `F-02-01` · 原生命令脚本（out-of-source）
 - [ ] `F-02-02` · Unix 动态加载分支（**属 RV**）
