@@ -437,9 +437,9 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [x] `F-05-04` · 32 组合横向对比
 - [x] `F-06-01` · CMake 三 OS 24 组合
 - [x] `F-06-02` · CTest 三 OS 与 out-of-source 断言
-- [ ] `F-07-01` · C++ 主程序
-- [ ] `F-07-02` · 反例：去掉 `extern "C"`
-- [ ] `F-07-03` · `std::vector` 跨边界用例
+- [x] `F-07-01` · C++ 主程序
+- [x] `F-07-02` · 反例：去掉 `extern "C"`
+- [x] `F-07-03` · `std::vector` 跨边界用例
 - [ ] `F-08-01` · `Vector` 类
 - [ ] `F-08-02` · `Statistics` 类与 3 源 / 2 头
 - [ ] `F-08-03` · `extern "C"` 门面与纯虚接口
@@ -463,7 +463,7 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [x] `R-04` · 发布 `v0.4.0`
 - [x] `R-05` · 发布 `v0.5.0`
 - [x] `R-06` · 发布 `v0.6.0`
-- [ ] `R-07` · 发布 `v0.7.0`
+- [x] `R-07` · 发布 `v0.7.0`
 - [ ] `R-08` · 发布 `v0.8.0`（Gate B）
 - [ ] `R-09` · 发布 `v1.0.0`（Gate C）
 

@@ -24,3 +24,6 @@ CMakeFiles/
 # 静态分析第①②层原始工具输出：可再生运行时证据，不入库（结论 md/json 与 deps 仍入库）
 /reports/**/layer1/
 /reports/**/layer2/
+
+# 反例运行日志：运行时证据，不入库（特征串经断言取证）
+/tests/reports/

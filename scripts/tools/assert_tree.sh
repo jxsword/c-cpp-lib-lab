@@ -18,10 +18,10 @@ case "$cmd" in
         n=$(find "$1" -mindepth "$2" -maxdepth "$2" -type d -not -path '*smoke*' 2>/dev/null | wc -l)
         [ "$n" -eq "$3" ]
         ;;
-    # grepeq <pattern> <file...> —— ERE 静态匹配（文件存在即查）
+    # grepeq <pattern> <file...> —— ERE 静态匹配（-a：ELF 等二进制按文本行搜）
     grepeq)
         pat="$1"; shift
-        grep -qE -- "$pat" "$@"
+        grep -aqE -- "$pat" "$@"
         ;;
     # grepctx <pattern> <after行数> <子pattern> <file> —— 命中后 N 行内再命中
     grepctx)
@@ -95,6 +95,10 @@ case "$cmd" in
         w="$1"; s="$2"; v="$3"; c="$4"
         n=$(cd "$w" && make -n -f "$s/Makefile" srcdir="$s" VARIANT="$v" CFG="$c" KIND=static 2>/dev/null | grep -cE 'fPIC|fvisibility')
         [ "$n" -eq 0 ]
+        ;;
+    # nmsymref <elf> <符号> —— 未定义引用判定（nm 的 U 行；卡 A2 未修饰名证据）
+    nmsymref)
+        nm "$1" 2>/dev/null | grep -qE " U $2\$"
         ;;
     # xmlvalid <file> —— XML 可解析（python minidom）
     xmlvalid)
