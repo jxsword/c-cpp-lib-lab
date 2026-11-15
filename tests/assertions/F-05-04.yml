@@ -1,0 +1,23 @@
+# tests/assertions/F-05-04.yml — F-05-04 断言基线
+card: F-05-04
+checks:
+  - id: A1-verify-32-exit0
+    action: run
+    args: ./scripts/verify_make32.sh
+    expect: exit0
+  - id: A4-variant-not-extra-row
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq /MD //MT 为 variant 字段 scripts/verify_make32.sh
+    expect: exit0
+  - id: A5-summary-exists
+    action: exists
+    args: reports/v0.5.0/SUMMARY.md
+    expect: exit0
+  - id: ps1-parity-script
+    action: exists
+    args: scripts/verify_make32.ps1
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-05-04
+    expect: exit0
