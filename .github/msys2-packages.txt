@@ -1,0 +1,15 @@
+# MSYS2 pacman 包清单（PLAN 5.9.1）：按 msystem 分段。
+# 消费方式：workflow 按当前 msystem 取对应段传给 msys2/setup-msys2 的 install
+# （段头为段标记，非包名；见 docs/ci-cache.md 的分段解析约定）。
+[MINGW64]
+mingw-w64-x86_64-toolchain
+make
+[MINGW32]
+mingw-w64-i686-toolchain
+make
+[CLANG64]
+mingw-w64-clang-x86_64-toolchain
+make
+[UCRT64]
+mingw-w64-ucrt-x86_64-toolchain
+make

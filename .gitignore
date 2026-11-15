@@ -1,0 +1,22 @@
+# 构建产物：三套构建方式全部 out-of-source，产物只允许落在 build/<group>/...
+/build/
+/out/
+/reports/**/*.log
+CMakeCache.txt
+CMakeFiles/
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dll
+*.dylib
+*.pdb
+*.ilk
+*.exp
+*.dSYM/
+
+# 本地工具会话状态（非项目文件，不入库）
+/.mimosa/
+/.zcode/

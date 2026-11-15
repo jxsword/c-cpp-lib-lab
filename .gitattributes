@@ -1,0 +1,11 @@
+# 编码与换行全量规则（F-00-04 补全，PLAN 5.10 / v1.3.1）
+# bat/cmd/nmake 用 -text 保真入库（text eol=crlf 会在提交时归一化 blob 为 LF，见 12.H plan-02）
+* text=auto
+*.sh   text eol=lf
+*.ps1  text eol=crlf
+*.bat  -text
+*.cmd  -text
+*.yml  text eol=lf
+*.md   text eol=lf
+Makefile    text eol=lf
+Makefile.nmake -text
