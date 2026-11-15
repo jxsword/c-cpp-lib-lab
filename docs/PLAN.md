@@ -435,7 +435,7 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [x] `F-05-02` · **nmake 单独 makefile（10 组合，S9）**
 - [x] `F-05-03` · MSBuild（8 组合）
 - [x] `F-05-04` · 32 组合横向对比
-- [ ] `F-06-01` · CMake 三 OS 24 组合
+- [x] `F-06-01` · CMake 三 OS 24 组合
 - [ ] `F-06-02` · CTest 三 OS 与 out-of-source 断言
 - [ ] `F-07-01` · C++ 主程序
 - [ ] `F-07-02` · 反例：去掉 `extern "C"`
