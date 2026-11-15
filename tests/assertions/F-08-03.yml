@@ -1,0 +1,27 @@
+# tests/assertions/F-08-03.yml — F-08-03 断言基线
+card: F-08-03
+checks:
+  - id: A1-pure-c-compiler-pass
+    action: run
+    args: gcc -Istage3 -fsyntax-only -xc - -include facade.h
+    expect: exit0
+  - id: A1b-facade-cpp-compiles
+    action: run
+    args: g++ -std=c++17 -Wall -Wextra -Werror -Istage3 -c stage3/facade.cpp -o /tmp/vc-facade-check.o
+    expect: exit0
+  - id: A2-facade-c-names
+    action: script
+    args: ./scripts/tools/assert_tree.sh nmclass /tmp/vc-facade-check.o stage3_istats_create
+    expect: exit0
+  - id: A3-no-stl-inline-template
+    action: script
+    args: ./scripts/tools/assert_tree.sh notgrep 'std::|template|inline' stage3/facade.h
+    expect: exit0
+  - id: A4-consumer-runs-correct
+    action: run
+    args: /tmp/facade_consumer
+    expect: regex:mean=2.count=2
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-08-03
+    expect: exit0

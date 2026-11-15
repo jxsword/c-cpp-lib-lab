@@ -15,6 +15,14 @@ if [ ! -f "$SRC" ]; then
     exit 2
 fi
 
+# MSVC 专属反例在其他 OS 上 SKIP（A2：输出 SKIP 且退出码 0）
+if [ "$NAME" = "stage3_stl_across_crt" ]; then
+    if [ "$(uname -s)" != "MINGW64_NT-" ] && [ "$(uname -s)" != "MINGW32_NT-" ] && [ "$(uname -o 2>/dev/null)" != "msys" ]; then
+        echo "SKIP: MSVC-specific negative case (CRT/_ITERATOR_DEBUG_LEVEL mismatch is an MSVC CRT behavior)"
+        exit 0
+    fi
+fi
+
 LOG_DIR="$ROOT/reports/v0.7.0/negative"
 mkdir -p "$LOG_DIR"
 LOG="$LOG_DIR/$NAME.log"

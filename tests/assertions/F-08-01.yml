@@ -1,0 +1,27 @@
+# tests/assertions/F-08-01.yml — F-08-01 断言基线
+card: F-08-01
+checks:
+  - id: A1-zero-warning
+    action: run
+    args: g++ -std=c++17 -Wall -Wextra -Werror -c -Istage3/include stage3/src/vector.cpp -o /tmp/vc-stage3-vector.o
+    expect: exit0
+  - id: A2-mangled-vector-symbols
+    action: script
+    args: ./scripts/tools/assert_tree.sh nmclass /tmp/vc-stage3-vector.o Vector::
+    expect: exit0
+  - id: A3-public-methods-4
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq void normalize stage3/include/vector.hpp
+    expect: exit0
+  - id: A4-no-vmath-include
+    action: script
+    args: ./scripts/tools/assert_tree.sh notgrep '#include.*vmath' stage3/include/vector.hpp
+    expect: exit0
+  - id: A4b-no-vmath-include-src
+    action: script
+    args: ./scripts/tools/assert_tree.sh notgrep '#include.*vmath' stage3/src/vector.cpp
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-08-01
+    expect: exit0

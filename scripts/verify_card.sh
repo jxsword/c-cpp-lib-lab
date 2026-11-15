@@ -39,7 +39,7 @@ do_run()
     case "$prog" in
         */*) [ -x "$prog" ] || { echo "prog not executable: $prog"; return 125; } ;;
     esac
-    "$prog" "$@"
+    "$prog" "$@" < /dev/null
 }
 do_grep()
 {
@@ -118,7 +118,9 @@ while IFS= read -r line; do
             expect=${line#'    expect: '}
             ;;
     esac
-done < "$YML"
+done < <(cat "$YML")
+# 注意：用 process substitution 预读 yml，防止被检命令（如 gcc -）吞噬循环 stdin；
+# 被检命令的 stdin 统一指向 /dev/null
 flush
 
 if [ "$fails" -eq 0 ]; then

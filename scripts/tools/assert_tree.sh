@@ -96,6 +96,16 @@ case "$cmd" in
         n=$(cd "$w" && make -n -f "$s/Makefile" srcdir="$s" VARIANT="$v" CFG="$c" KIND=static 2>/dev/null | grep -cE 'fPIC|fvisibility')
         [ "$n" -eq 0 ]
         ;;
+    # stage3build <out> <cfg-flags...> —— 阶段 3 三源固定编译（noglob 下显式列文件）
+    stage3build)
+        out="$1"; shift
+        g++ -std=c++17 "$@" -Istage3/include \
+            stage3/src/vector.cpp stage3/src/stats.cpp stage3/src/main.cpp -o "$out"
+        ;;
+    # nmclass <obj> <类名> —— nm -C 的类成员 mangled 符号判定
+    nmclass)
+        nm -C "$1" 2>/dev/null | grep -q "$2"
+        ;;
     # nmsymref <elf> <符号> —— 未定义引用判定（nm 的 U 行；卡 A2 未修饰名证据）
     nmsymref)
         nm "$1" 2>/dev/null | grep -qE " U $2\$"
