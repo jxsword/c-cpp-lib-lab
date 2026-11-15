@@ -1,10 +1,10 @@
 # c-cpp-lib-lab 开发计划
 
 > **文档性质**：独立开发计划（Execution Plan / Git Flow Work Breakdown）。**完全自包含**：zcode 只凭本文件即可完成全部开发、构建、测试与分析，**不依赖、不引用任何外部文档**（校验见 `0.7.4`）。
-> **来源与版本**：v1.0 由既有实战项目规格重组而来；v1.1、v1.2 经补充需求修订；**v1.3 = v1.2 + `hotfix/plan-01` 首次启动引导期修订（M1–M5 / S1 / S3，留痕见 `12.H`）**。**v1.2 起所有执行所需的技术基线、参考代码骨架与知识补遗已全部内联**（第 5 章、第 7 章、附录 A–H）；外部学习资料与本计划**无引用关系**，开发时无需查阅。
+> **来源与版本**：v1.0 由既有实战项目规格重组而来；v1.1、v1.2 经补充需求修订；**v1.3 = v1.2 + `hotfix/plan-01` 首次启动引导期修订（M1–M5 / S1 / S3，留痕见 `12.H`）**；**v1.3.1 = v1.3 + `hotfix/plan-02`（`*.bat`/`*.cmd`/`Makefile.nmake` 的 `.gitattributes` 机制由 `text eol=crlf` 修正为 `-text` 保真入库，使 lint 的 CRLF 断言可生效，留痕见 `12.H`）**。**v1.2 起所有执行所需的技术基线、参考代码骨架与知识补遗已全部内联**（第 5 章、第 7 章、附录 A–H）；外部学习资料与本计划**无引用关系**，开发时无需查阅。
 > **适用**：在 **zcode** 中按 **git flow** 逐卡开发、调试、验证；所有 Git / GitHub 侧操作由 agent 调用 `gh` 完成（见 `0.7.3`、`8.5`）。
 > **项目名**：`c-cpp-lib-lab`（仓库名 / 根目录名）｜**库**：`vmath`｜**可执行**：`calctool`
-> **版本**：**Plan v1.3** · 完全自包含 + 仓库 / `gh` 前置条件 + 首次启动引导期修订（`hotfix/plan-01`） · **状态：待确认**
+> **版本**：**Plan v1.3.1** · 完全自包含 + 仓库 / `gh` 前置条件 + 首次启动引导期修订（`hotfix/plan-01`）+ `hotfix/plan-02`（bat/cmd/nmake 保真） · **状态：已确认，git flow 逐卡执行中**
 > **本文件不含**：任何已编译验证的工程源码、git 仓库、CI 运行结果。它只定义「做什么、在哪个分支做、怎么算做完」。
 > **本次交付边界**：只修订本计划文件；**未初始化仓库、未创建任何源码、未执行任何构建、未通过 `gh` 做任何写操作**。
 
@@ -480,7 +480,7 @@ c-cpp-lib-lab/
 │   ├── msys2-packages.txt           # Windows/MSYS2 包清单（按 msystem 分段）
 │   └── tool-versions.env            # CMake / Ninja / LLVM / Dependencies 版本锁定
 ├── .gitignore
-├── .gitattributes                  # *.sh eol=lf | *.ps1 eol=crlf | *.bat eol=crlf
+├── .gitattributes                  # *.sh eol=lf | *.ps1 eol=crlf | *.bat -text（CRLF 保真）
 ├── LICENSE                         # MIT
 ├── README.md  CONTRIBUTING.md  CHANGELOG.md
 ├── Makefile                        # GNU make（Linux / macOS / msys2）
@@ -863,7 +863,7 @@ JSON 结构：
 |---|---|---|---|
 | `*.sh`（Linux / macOS bash） | UTF-8 **无 BOM** | **LF** | `.gitattributes: *.sh text eol=lf` + lint 断言 |
 | `*.ps1`（Windows PowerShell） | **UTF-8 BOM**（首 3 字节 `EF BB BF`） | CRLF（建议） | `.gitattributes: *.ps1 text eol=crlf` + lint 断言首 3 字节 |
-| `*.bat` / `*.cmd`（Windows 批处理） | UTF-8 **无 BOM**（cmd.exe 会把 BOM 当命令前缀，导致首行报错） | **CRLF 必须** | `.gitattributes: *.bat text eol=crlf` + lint 断言无裸 LF |
+| `*.bat` / `*.cmd`（Windows 批处理） | UTF-8 **无 BOM**（cmd.exe 会把 BOM 当命令前缀，导致首行报错） | **CRLF 必须** | `.gitattributes: *.bat -text`（blob 保真）+ lint 断言 CRLF（无裸 LF） |
 | `*.yml` / `*.md` / `*.c` / `*.h` / `*.cpp` / `*.hpp` / `Makefile*` | UTF-8 无 BOM | LF | `.gitattributes` |
 
 `.gitattributes` 关键行：
@@ -872,15 +872,15 @@ JSON 结构：
 * text=auto
 *.sh   text eol=lf
 *.ps1  text eol=crlf
-*.bat  text eol=crlf
-*.cmd  text eol=crlf
+*.bat  -text
+*.cmd  -text
 *.yml  text eol=lf
 *.md   text eol=lf
 Makefile    text eol=lf
-Makefile.nmake text eol=crlf
+Makefile.nmake -text
 ```
 
-> **注意**：`.gitattributes` 的 `eol` 只保证 checkout **换行**，**不能自动添加 BOM**。`*.ps1` 的 UTF-8 BOM 由**首个 `.ps1` 的产出卡 `F-00-04` 创建时写入**（v1.3 修正：`F-00-01` 不产出任何 `.ps1`），由 `scripts/tools/check_encoding.ps1` 与 lint 在每次 PR 校验；**D9 自 `F-00-04` 起生效**（`2.6` 分期生效表）；`Makefile.nmake` 因 nmake 对换行敏感，单独设 CRLF。
+> **注意**：`.gitattributes` 的 `eol` 只保证 checkout **换行**，**不能自动添加 BOM**。`*.ps1` 的 UTF-8 BOM 由**首个 `.ps1` 的产出卡 `F-00-04` 创建时写入**（v1.3 修正：`F-00-01` 不产出任何 `.ps1`），由 `scripts/tools/check_encoding.ps1` 与 lint 在每次 PR 校验；**D9 自 `F-00-04` 起生效**（`2.6` 分期生效表）。**v1.3.1 修正**：`text eol=crlf` 会在**提交时把 blob 归一化为 LF**（CI 检出再展开为 CRLF），lint 对 blob/检出内容的 CRLF 断言将**恒空转**——因此 `*.bat`/`*.cmd`/`Makefile.nmake` 改用 **`-text` 保真入库**（blob 原样保留 CRLF，lint 可断言「CRLF 必须」；`*.ps1` 维持 `eol=crlf`，其换行仅为建议、BOM 断言不受影响）。
 
 **Windows 脚本分工**：`.bat` 作**薄入口**（`vcvarsall` / msys2 环境切换 + 调用对应 `.ps1`），`.ps1` 承担全部构建、分析、断言逻辑。两套文件都存在于 `scripts/windows/`，满足「windows 用 bat 和 powershell 脚本」。
 
@@ -2176,9 +2176,19 @@ on:
 
 > **校验**：本轮修订后，全卡断言 ↔ DoD 范围零不一致；8 项判据全部翻转；表格列数、代码块配对、卡号 / 分支名 / 组合数（`24+32+24=80`、`14+10+8=32`）自洽；HTML 阅读版同步重生成。
 
+**hotfix/plan-02 修订记录（v1.3.1）**
+
+> 背景：`F-00-02` A3 试探实测——`*.bat text eol=crlf` 在提交时把 blob 归一化为 LF（CRLF 与 LF 内容的 blob 经 `git cat-file` 比对完全相同），CI 检出时再展开为 CRLF；由此 (a) lint 的「无裸 LF / CRLF 必须」断言对 bat 维度恒空转，「LF 的 .bat 被拒」无法演示；(b) 功能面无恙（任何检出点 bat 均为 CRLF）。本轮**只改机制、不改验收语义**（bat/nmake 仍必须 CRLF）。
+
+| # | 复审发现 | v1.3.1 修法 | 落点 |
+|---|---|---|---|
+| **P1** | `text eol=crlf` 提交时归一化，lint CRLF 断言恒空转 | `*.bat`/`*.cmd`/`Makefile.nmake` 改 **`-text`**（blob 保真）+ lint 断言 CRLF；`*.ps1` 维持 `eol=crlf`（EOL 仅建议） | `5.10` 表行/关键行/注意段、`4.1` 注释、`F-00-04`（按新机制补全编码段）、`12.D`（断言语义不变） |
+
+> 仓库侧同步：`.gitattributes` 初版中由 `F-00-01` 写入的 `*.bat text eol=crlf` 行，由独立 chore PR 依本修正改为 `*.bat -text`（不混入任务卡分支）。
+
 ---
 
-**计划文件结束** · `c-cpp-lib-lab` · **Plan v1.3** · **完全自包含 + 仓库 / `gh` 前置条件 + 首次启动引导期修订（hotfix/plan-01）** · **状态：待确认**
+**计划文件结束** · `c-cpp-lib-lab` · **Plan v1.3.1** · **完全自包含 + 仓库 / `gh` 前置条件 + 引导期修订（hotfix/plan-01）+ bat/cmd/nmake 保真修正（hotfix/plan-02）** · **状态：已确认，执行中**
 
 > 10 个里程碑（M0–M9）、**44 张 feature 卡** + 10 次 release（`3.1` 勾选清单共 54 项）、3 个能力档位（Gate A/B/C）、**80 个组合**（原生 24 + make 32 + cmake 24）、3 组可单独 dispatch 的 CI 工作流（10 条 / 12 条 / 16 文件三种口径见 `8.2`）+ `all.yml` 全量编排；`0.3.1` 首次健康检查、`2.6` 分期生效表、`12.H` 修订留痕；**不依赖任何外部文档**，zcode 只凭本文件即可逐卡开发。
 > 本次仅修订本计划（`hotfix/plan-01`：M1–M5 / S1 / S3），**未初始化仓库、未写源码、未执行构建、未通过 `gh` 做任何写操作**。可回复「**确认 v1.3**」收尾，或「**hotfix/plan-02：…**」调整 `11.2` 待拍板项，或「**做到 Gate A**」在 zcode 中从 `F-00-01` 开始按 git flow 领卡。
