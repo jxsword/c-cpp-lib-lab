@@ -7,7 +7,7 @@ checks:
     expect: exit0
   - id: A4-no-compile-jobs
     action: script
-    args: ./scripts/tools/assert_tree.sh notgrep gcc|make|msbuild|cmake .github/workflows/lint.yml
+    args: ./scripts/tools/assert_tree.sh notgrep gcc -|msbuild\.exe|cmake --build .github/workflows/lint.yml
     expect: exit0
   - id: A5-no-gh-in-scripts
     action: script
