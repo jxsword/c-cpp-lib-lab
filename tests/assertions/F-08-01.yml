@@ -7,7 +7,7 @@ checks:
     expect: exit0
   - id: A2-mangled-vector-symbols
     action: script
-    args: ./scripts/tools/assert_tree.sh grepeq Vector:: /tmp/vc-stage3-vector.o
+    args: ./scripts/tools/assert_tree.sh nmclass /tmp/vc-stage3-vector.o Vector::
     expect: exit0
   - id: A3-public-methods-4
     action: script
