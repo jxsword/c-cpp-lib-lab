@@ -50,10 +50,11 @@ if ($strings) {
 }
 if (-not (Test-Path "$report\layer1\strings.txt")) { 'strings: not available' | Set-Content "$report\layer1\strings.txt" }
 
-# ② 第三方（llvm-readobj Rich Header；Dependencies CLI 交叉验证；缺失即记录）
+# ② 第三方（llvm-readobj Rich Header + 导出表交叉证据；Dependencies CLI；缺失即记录）
 $llvm = Get-Command llvm-readobj -ErrorAction SilentlyContinue
 if ($llvm) {
     & llvm-readobj --coff-rich-header $bin > "$report\layer2\llvm-rich.txt" 2>&1
+    & llvm-readobj --coff-exports $exportTarget > "$report\layer2\llvm_exports.txt" 2>&1
 }
 else {
     'llvm-readobj: not installed' | Set-Content "$report\layer2\llvm-rich.txt"
@@ -114,15 +115,28 @@ elseif ($exports -eq '') {
     Record 'SA-5' 'PASS' 'deferred: dumpbin unavailable locally (expect 6 API ordinals 1-6, @5 NONAME)'
 }
 elseif ($toolset -eq 'msys2') {
-    $missing = @(@($named6 + @('vmath_errno')) | Where-Object { $exports -notmatch [regex]::Escape($_) })
-    if ($missing.Count -eq 0) { Record 'SA-5' 'PASS' '6 API + vmath_errno (MinGW default export)' }
-    else { Record 'SA-5' 'FAIL' "missing: $($missing -join ',')" }
+    # msys2 无 dumpbin（不走 vcvars）：有 llvm-readobj 导出转储时做真断言，否则 deferred
+    $lex = if (Test-Path "$report\layer2\llvm_exports.txt") { Get-Content "$report\layer2\llvm_exports.txt" -Raw } else { '' }
+    $targets = @($named6 + @('vmath_errno'))
+    if ($lex -ne '') {
+        $missing = @($targets | Where-Object { $lex -notmatch [regex]::Escape($_) })
+        if ($missing.Count -eq 0) { Record 'SA-5' 'PASS' '6 API + vmath_errno (MinGW default export, llvm-readobj)' }
+        else { Record 'SA-5' 'FAIL' "missing: $($missing -join ',')" }
+    }
+    else {
+        $missing = @($targets | Where-Object { $exports -notmatch [regex]::Escape($_) })
+        if ($missing.Count -eq 0) { Record 'SA-5' 'PASS' '6 API + vmath_errno (MinGW default export)' }
+        else { Record 'SA-5' 'FAIL' "missing: $($missing -join ',')" }
+    }
 }
 else {
     # .def @5 NONAME（PLAN 608）：build_info 按名不出现，仅 ordinal 5 可寻址
     $miss5 = @($named5 | Where-Object { $exports -notmatch [regex]::Escape($_) })
     if ($miss5.Count -gt 0) { Record 'SA-5' 'FAIL' "missing: $($miss5 -join ',')" }
-    elseif ($exports -match 'vmath_build_info') { Record 'SA-5' 'FAIL' 'NONAME violated: build_info resolvable by name' }
+    elseif ($exports -match 'vmath_build_info') {
+        $hit = (@($exports -split "`n") | Where-Object { $_ -match 'vmath_build_info' } | Select-Object -First 1)
+        Record 'SA-5' 'FAIL' "NONAME violated: build_info resolvable by name (line: $("$hit".Trim()))"
+    }
     else { Record 'SA-5' 'PASS' '5 API by name + build_info @5 NONAME (msvc/clang-cl)' }
 }
 
