@@ -19,11 +19,15 @@ DEPTAG=""
 SEARCH=()
 while [ "$#" -gt 0 ]; do
     case "$1" in
-        -o)    OUT_BASE="$2"; shift 2 ;;
-        --tag) DEPTAG="$2"; shift 2 ;;
-        *)     SEARCH+=("$1"); shift ;;
+        -o)          OUT_BASE="$2"; shift 2 ;;
+        --tag)       DEPTAG="$2"; shift 2 ;;
+        --compiler)  COMPILER="$2"; shift 2 ;;
+        --cfg)       CFGV="$2"; shift 2 ;;
+        *)           SEARCH+=("$1"); shift ;;
     esac
 done
+COMPILER="${COMPILER:-unknown}"
+CFGV="${CFGV:-unknown}"
 [ -n "$OUT_BASE" ] || OUT_BASE="${ART}.deps"
 [ -n "$DEPTAG" ] || DEPTAG=$(basename "$ART")
 mkdir -p "$(dirname "$OUT_BASE")"
@@ -124,9 +128,10 @@ EOF
 
 JSON_FILE="$OUT_BASE.json"
 {
-    printf '{"tag": "%s", "root": {"path": "%s", "arch": "%s"}, "tree": ' \
+    printf '{"tag": "%s", "root": {"path": "%s", "arch": "%s", "compiler": "%s", "cfg": "%s"}, "tree": ' \
         "$DEPTAG" "$(readlink -f "$ART")" \
-        "$(file -b "$ART" | grep -oE 'ELF (32|64)-bit' | grep -oE '(32|64)')"
+        "$(file -b "$ART" | grep -oE 'ELF (32|64)-bit' | grep -oE '(32|64)')" \
+        "$COMPILER" "$CFGV"
     emit_node "$(readlink -f "$ART")" "$(basename "$ART")" "$(basename "$ART")" "" ""
     printf ', "symlink_chains": ['
     n=0

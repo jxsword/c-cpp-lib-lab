@@ -69,9 +69,16 @@ else
     echo "llvm-nm: not installed" > "$REPORT/layer2/llvm-nm.txt"
 fi
 if command -v llvm-dwarfdump >/dev/null 2>&1; then
-    llvm-dwarfdump --version       > "$REPORT/layer2/llvm-dwarfdump.txt" 2>&1
+    llvm-dwarfdump --version > "$REPORT/layer2/llvm-dwarfdump.txt" 2>&1
 else
     echo "llvm-dwarfdump: not installed" > "$REPORT/layer2/llvm-dwarfdump.txt"
+fi
+if command -v dylibbundler >/dev/null 2>&1; then
+    # 第二层交叉验证：dylibbundler 仅分析模式（-x 需改写二进制，此处用只读列举）
+    dylibbundler -p 2>/dev/null > "$REPORT/layer2/dylibbundler.txt" 2>&1 || \
+        echo "dylibbundler: analysis mode unavailable" > "$REPORT/layer2/dylibbundler.txt"
+else
+    echo "dylibbundler: not installed (brew: dylibbundler)" > "$REPORT/layer2/dylibbundler.txt"
 fi
 
 # ③ 归一判定
@@ -165,7 +172,7 @@ else
 fi
 
 # SA-8 依赖树（先于 SA-7）
-if bash "$(dirname "$0")/deps_tree.sh" "$BIN" -o "$REPORT/deps/${TAG}_${KIND}" --tag "${TAG}_${KIND}" >/dev/null 2>&1 &&
+if bash "$(dirname "$0")/deps_tree.sh" "$BIN" -o "$REPORT/deps/${TAG}_${KIND}" --tag "${TAG}_${KIND}" --compiler "apple-clang $ver" --cfg "$CFG" >/dev/null 2>&1 &&
    python3 -m json.tool "$REPORT/deps/${TAG}_${KIND}.json" >/dev/null 2>&1; then
     record SA-8 PASS "deps tree: deps/${TAG}_${KIND}.{json,md} (BFS, shared-cache classification)"
 else

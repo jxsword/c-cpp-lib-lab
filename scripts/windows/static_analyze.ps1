@@ -43,13 +43,20 @@ Get-Content $bin -Encoding Byte -TotalCount 2 | Out-Null
 & strings.exe $bin 2>$null | Out-File "$report\layer1\strings.txt"
 if (-not (Test-Path "$report\layer1\strings.txt")) { 'strings: not available' | Set-Content "$report\layer1\strings.txt" }
 
-# ② 第三方（llvm-readobj Rich Header；缺失即记录）
+# ② 第三方（llvm-readobj Rich Header；Dependencies CLI 交叉验证；缺失即记录）
 $llvm = Get-Command llvm-readobj -ErrorAction SilentlyContinue
 if ($llvm) {
     & llvm-readobj --coff-rich-header $bin > "$report\layer2\llvm-rich.txt" 2>&1
 }
 else {
     'llvm-readobj: not installed' | Set-Content "$report\layer2\llvm-rich.txt"
+}
+$depsCli = Get-Command Dependencies -ErrorAction SilentlyContinue
+if ($depsCli) {
+    & Dependencies -modules $bin > "$report\layer2\dependencies_cli.txt" 2>&1
+}
+else {
+    'Dependencies CLI: not installed (version pinned in .github/tool-versions.env)' | Set-Content "$report\layer2\dependencies_cli.txt"
 }
 
 # ③ 归一判定

@@ -5,7 +5,9 @@
 param(
     [Parameter(Mandatory = $true)][string]$Artifact,
     [string]$OutBase = '',
-    [string]$Deptag = ''
+    [string]$Deptag = '',
+    [string]$Compiler = 'unknown',
+    [string]$Cfg = 'unknown'
 )
 $ErrorActionPreference = 'Stop'
 if (-not $OutBase) { $OutBase = "$Artifact.deps" }
@@ -43,23 +45,31 @@ function Resolve-Dep([string]$name, [string]$dir) {
 
 $tree = [ordered]@{
     tag = $Deptag
-    root = [ordered]@{ path = $Artifact; kind = 'PE' }
+    root = [ordered]@{ path = $Artifact; kind = 'PE'; compiler = $Compiler; cfg = $Cfg }
     tree = @()
+    symlinkChains = @()
     apiSets = @()
     dedup = @()
 }
 $seen = @{}
 
+# symlink/junction 判定（Get-Item -Force 的 LinkType；PLAN 5.8.3 Windows 行）
+function Test-Symlink([string]$p) {
+    $item = Get-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue
+    return ($item -and $item.LinkType)
+}
+
 function Add-Node([string]$name, [string]$path, [string]$indent) {
     if ($seen.ContainsKey($name)) { return }
     $seen[$name] = $true
     $origin = if ($path -like "$env:SystemRoot*") { 'system' } elseif ($path) { 'bundle' } else { 'unresolved' }
-    $node = [ordered]@{ name = $name; real = $path; origin = $origin; children = @() }
+    $node = [ordered]@{ name = $name; logical = $name; real = $path; origin = $origin; children = @() }
     if ($path -and (Test-Path $path)) {
         foreach ($d in (Get-Dependents $path)) {
             $cls = Classify $d
             if ($cls -eq 'api-set') { $tree.apiSets += $d; continue }
             $rp = Resolve-Dep $d (Split-Path -Parent $path)
+            if ($rp -and (Test-Symlink $rp)) { $tree.symlinkChains += @($d, $rp) }
             Add-Node $d $rp "$indent    "
         }
     }
