@@ -9,8 +9,11 @@ option(BUILD_SHARED_LIBS "Build vmath as a shared library" ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # 构建树 RUNPATH 用 $ORIGIN 而非绝对构建路径（使 install 阶段 file(RPATH_CHANGE)
-# 可可靠改写为 INSTALL_RPATH；也使构建树 RUNPATH 与 native.sh 一致为恰 $ORIGIN）
+# 可靠改写为 INSTALL_RPATH；也使构建树 RUNPATH 与 native.sh 一致为恰 $ORIGIN）
 set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
+# MSVC CRT 抽象（CMP0091 NEW；A5：命令行 -DCMAKE_MSVC_RUNTIME_LIBRARY 按
+# variant 的 _MD/_MT 注入 MultiThreadedDLL/MultiThreaded，Debug 自动 *d）
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
 add_library(vmath
     src/vmath_core.c
