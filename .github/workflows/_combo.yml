@@ -49,6 +49,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # env 与 combo 是不同 runner：本 runner 重新恢复缓存并安装包
+      # （apt 缓存命中 env job 的 save → 安装近零；A3 的 cache-hit 证据链在此）
+      - name: Restore env (cache + packages on this runner)
+        id: setup
+        uses: ./.github/actions/setup-env
+        with:
+          toolset: ${{ inputs.toolset }}
+          variant: ${{ inputs.variant }}
+          cfg: ${{ inputs.cfg }}
+          kind: ${{ inputs.kind }}
+
       # ---- step 1: build（构建，按 group/OS 分派脚本） ----
       - name: Build combo
         id: build
