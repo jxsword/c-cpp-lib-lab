@@ -1,0 +1,23 @@
+# tests/assertions/F-00-03.yml — F-00-03 断言基线（F-02-05 起机器可执行；原始输出见卡回执 PR #14）
+card: F-00-03
+checks:
+  - id: A1-manifests-exist
+    action: run
+    args: ls .github/apt-packages.txt .github/brew-packages.txt .github/msys2-packages.txt .github/tool-versions.env
+    expect: exit0
+  - id: A2-seven-cache-objects
+    action: run
+    args: grep -c actions/cache .github/actions/setup-env/action.yml
+    expect: regex:^1[0-9]$
+  - id: A3-key-has-os-toolset-variant-cfg
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq cc-.*-.*inputs.toolset.*inputs.variant.*inputs.cfg .github/actions/setup-env/action.yml
+    expect: exit0
+  - id: A5-ci-cache-doc
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq 失效条件 docs/ci-cache.md
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-00-03
+    expect: exit0

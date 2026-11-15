@@ -1,0 +1,27 @@
+# tests/assertions/F-02-04.yml — F-02-04 断言基线（F-02-05 起机器可执行；原始输出见卡回执 PR #35）
+card: F-02-04
+checks:
+  - id: A1-report-ten-items
+    action: script
+    args: ./scripts/tools/assert_tree.sh sacount reports/linux_gcc_x64_Release/native/linux_gcc_x64_Release_shared.md 10
+    expect: exit0
+  - id: A1-no-na
+    action: script
+    args: ./scripts/tools/assert_tree.sh notgrep N/A reports/linux_gcc_x64_Release/native/linux_gcc_x64_Release_shared.md
+    expect: exit0
+  - id: A2-export-section
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepctx 导出集区分 4 API.导出集 reports/linux_gcc_x64_Release/native/linux_gcc_x64_Release_shared.md
+    expect: exit0
+  - id: A3-static-sa7-no-libvmath
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq no libvmath dependency reports/linux_gcc_x64_Debug/native/linux_gcc_x64_Debug_static.md
+    expect: exit0
+  - id: A4-template-exists
+    action: exists
+    args: reports/TEMPLATE.md
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-02-04
+    expect: exit0

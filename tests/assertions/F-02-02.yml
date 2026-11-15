@@ -1,0 +1,23 @@
+# tests/assertions/F-02-02.yml — F-02-02 断言基线（F-02-05 起机器可执行；原始输出见卡回执 PR #31）
+card: F-02-02
+checks:
+  - id: A1-dynamic-resolve-6api
+    action: run
+    args: build/native/linux_gcc_x64_Release/shared/calctool --dynamic build/native/linux_gcc_x64_Release/shared/libvmath.so.1.0.0 add 1 2
+    expect: regex:6/6 API symbols resolved
+  - id: A3-unload-clean
+    action: run
+    args: build/native/linux_gcc_x64_Release/shared/calctool --dynamic build/native/linux_gcc_x64_Release/shared/libvmath.so.1.0.0 add 1 2
+    expect: regex:library unloaded
+  - id: A4-bad-path-explicit
+    action: run
+    args: build/native/linux_gcc_x64_Release/shared/calctool --dynamic /nonexistent/libvmath.so add 1 2
+    expect: exit:2
+  - id: A5-analyze-scan-clean
+    action: run
+    args: ./scripts/tools/scan_dynamic_calls.sh
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-02-02
+    expect: exit0

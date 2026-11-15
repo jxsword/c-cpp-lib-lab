@@ -1,0 +1,31 @@
+# tests/assertions/F-01-02.yml — F-01-02 断言基线（F-02-05 起机器可执行；原始输出见卡回执 PR #23）
+card: F-01-02
+checks:
+  - id: A1-c-syntax
+    action: run
+    args: gcc -fsyntax-only -Iinclude -x c include/vmath.h
+    expect: exit0
+  - id: A2-api-count-6
+    action: run
+    args: grep -c CALC_API include/vmath.h
+    expect: regex:^6$
+  - id: A3-bare-symbol-before-end
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq extern int vmath_errno include/vmath.h
+    expect: exit0
+  - id: A4-def-ordinals
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq vmath_add[[:space:]]+@1 def/vmath.def
+    expect: exit0
+  - id: A4-def-noname
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq vmath_build_info[[:space:]]+@5[[:space:]]+NONAME def/vmath.def
+    expect: exit0
+  - id: A4-def-no-data-no-errno
+    action: script
+    args: ./scripts/tools/assert_tree.sh notgrep 'DATA|vmath_errno' def/vmath.def
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-01-02
+    expect: exit0

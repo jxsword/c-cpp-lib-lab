@@ -1,28 +1,25 @@
-# tests/assertions/F-02-03.yml — F-02-03 断言基线
-# verify_card.sh 自动入口自 F-02-05 才建立（PLAN 2.6 分期生效表）；
-# 当前由 agent 逐条执行并把原始输出贴入回执。本文件为断言内容源（D1）。
+# tests/assertions/F-02-03.yml — F-02-03 断言基线（F-02-05 起为 verify_card.sh 机器可执行格式）
+# 原始逐条断言输出见该卡回执（PR #32）。A7 以「引擎可再生三层输出」表达
+# （layer1/2 为运行时证据，自 PR #33 起不入库，由 analyze.sh 现场生成）。
 card: F-02-03
-branch: feature/m2-03-static-analysis
-command: ./scripts/linux/static_analyze.sh linux_gcc_x64_Release shared native
-assertions:
-  - id: A1
-    desc: SA-1…SA-10 十项均有 PASS/FAIL 结论
-    verify: reports/<tag>/<group>/<tag>_<kind>.md 含 10 条 SA 行，result ∈ {PASS, FAIL}
-  - id: A2
-    desc: 编译器输出形如 gcc <x.y.z> 且与 gcc --version 一致
-    verify: SA-2 证据行匹配 gcc <x.y.z>，版本与本地 gcc --version 相同
-  - id: A3
-    desc: 依赖树含 libvmath.so.1 → libvmath.so.1.0.0 符号链接链与 realpath
-    verify: deps JSON 的 symlink_chains 含该链；节点 real 为 readlink -f 绝对路径
-  - id: A4
-    desc: 树为分级缩进且 JSON 可解析
-    verify: python3 -m json.tool 通过；md 含缩进树行（├─/└─）
-  - id: A5
-    desc: 系统库 / 自带库已分类
-    verify: 树节点 origin ∈ {bundle, system}（build/ 前缀 → bundle）
-  - id: A6
-    desc: 脚本全文无 5.8.4 禁用调用
-    verify: scripts/tools/scan_dynamic_calls.sh 零命中（FORBIDDEN: 白名单除外）
-  - id: A7
-    desc: 三层工具各自输出均落盘可查
-    verify: reports/<tag>/<group>/layer1/ 与 layer2/ 文件齐备；deps/ 与结论 md/json 齐备
+checks:
+  - id: A6-scan-clean
+    action: run
+    args: ./scripts/tools/scan_dynamic_calls.sh
+    expect: exit0
+  - id: A7-engine-regenerates-three-layers
+    action: run
+    args: ./scripts/linux/analyze.sh linux_gcc_x64_Release shared native
+    expect: exit0
+  - id: A7-layer1-dumps-regenerated
+    action: script
+    args: ./scripts/tools/assert_tree.sh filecount reports/linux_gcc_x64_Release/native/layer1 *.txt 10
+    expect: exit0
+  - id: A3-symlink-chain
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq libvmath.so.1.0.0 reports/linux_gcc_x64_Release/deps/linux_gcc_x64_Release_shared.json
+    expect: exit0
+  - id: A4-deps-json-valid
+    action: run
+    args: python3 -m json.tool reports/linux_gcc_x64_Release/deps/linux_gcc_x64_Release_shared.json
+    expect: exit0

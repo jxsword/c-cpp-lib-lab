@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# assert_tree.sh —— verify_card.sh 的受限断言子命令集（F-02-05）
+# 每个子命令 = 一个固定检查（参数列表，成功 exit 0 / 失败非 0）。
+# 管道、循环等 shell 表达力封装在此脚本内（审查面），yml 侧无 shell。
+# 不调用 GitHub CLI（9.4 J7）。
+set -u
+
+cmd="${1:-}"; shift || true
+
+case "$cmd" in
+    # count <dir> <name-pattern> <期望数> —— find|wc 封装
+    count)
+        n=$(find "$1" -name "$2" 2>/dev/null | wc -l)
+        [ "$n" -eq "$3" ]
+        ;;
+    # countdirs <dir> <深度> <期望数> —— 目录计数（排除 smoke/ 冒烟演练子树）
+    countdirs)
+        n=$(find "$1" -mindepth "$2" -maxdepth "$2" -type d -not -path '*smoke*' 2>/dev/null | wc -l)
+        [ "$n" -eq "$3" ]
+        ;;
+    # grepeq <pattern> <file...> —— ERE 静态匹配（文件存在即查）
+    grepeq)
+        pat="$1"; shift
+        grep -qE -- "$pat" "$@"
+        ;;
+    # grepctx <pattern> <after行数> <子pattern> <file> —— 命中后 N 行内再命中
+    grepctx)
+        pat="$1"; n="$2"; sub="$3"; f="$4"
+        grep -A"$n" -E -- "$pat" "$f" | grep -qE -- "$sub"
+        ;;
+    # notgrep <pattern> <file或目录> —— 不得命中（命中=失败；目录递归）
+    notgrep)
+        ! grep -qrE -- "$1" "$2"
+        ;;
+    # elfclass <file> <32|64> —— ELF 类别
+    elfclass)
+        file "$1" | grep -q "ELF ${2}-bit"
+        ;;
+    # needed <elf> <lib子串> —— 动态段含该依赖
+    needed)
+        readelf -d "$1" 2>/dev/null | grep -q "$2"
+        ;;
+    # notneeded <elf> <lib子串> —— 动态段不含该依赖
+    notneeded)
+        ! readelf -d "$1" 2>/dev/null | grep -q "$2"
+        ;;
+    # nmglobal <obj> <type T|B|D> <符号名ERE> <期望数>
+    nmglobal)
+        n=$(nm "$1" 2>/dev/null | awk -v t="$2" '$2 == t' | grep -cE "$3")
+        [ "$n" -eq "$4" ]
+        ;;
+    # nmsym <obj> <符号> <类型小写> —— 局部符号类型（t/d/b）
+    nmsym)
+        nm "$1" 2>/dev/null | awk -v s="$2" '$3 == s {print $2}' | grep -qx "$3"
+        ;;
+    # srcnoartifacts <root> —— D2：源码树无产物
+    srcnoartifacts)
+        ! find "$1" -path "$1/build" -prune -o -name '*.o' -print 2>/dev/null | grep -q .
+        ;;
+    # ymlpresent <卡号...> —— 断言文件齐备
+    ymlpresent)
+        for c in "$@"; do
+            [ -f "tests/assertions/$c.yml" ] || exit 1
+        done
+        ;;
+    # selftest <可执行> —— --self-test 退出 0
+    selftest)
+        "$1" --self-test >/dev/null 2>&1
+        ;;
+    # bom <file> —— 首 3 字节 EF BB BF
+    bom)
+        [ "$(head -c 3 "$1" | od -An -tx1 | tr -d ' \n')" = "efbbbf" ]
+        ;;
+    # cardchecked <卡号> —— PLAN 3.1 中该卡已打勾
+    cardchecked)
+        grep -qE "^- \[x\] \`$1\`" docs/PLAN.md
+        ;;
+    # filecount <dir> <name-pattern> <期望数> —— find|wc（pattern 可含通配）
+    filecount)
+        n=$(find "$1" -name "$2" 2>/dev/null | wc -l)
+        [ "$n" -eq "$3" ]
+        ;;
+    # sacount <报告md> <期望数> —— SA 结论矩阵行数（| SA-n | PASS/FAIL）
+    sacount)
+        n=$(grep -cE '^\| SA-[0-9]+ \| (PASS|FAIL)' "$1")
+        [ "$n" -eq "$2" ]
+        ;;
+    # errnoonly <目录> <文件> —— 裸符号仅出现在指定源文件（grep -rln 封装）
+    errnoonly)
+        [ "$(grep -rln "$1" "$2" 2>/dev/null | sort | tr '\n' ' ' | sed 's/ $//')" = "$3" ]
+        ;;
+    *)
+        echo "unknown assert_tree command: $cmd" >&2
+        exit 125
+        ;;
+esac

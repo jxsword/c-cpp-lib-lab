@@ -1,0 +1,23 @@
+# tests/assertions/F-01-04.yml — F-01-04 断言基线（F-02-05 起机器可执行；原始输出见卡回执 PR #25）
+card: F-01-04
+checks:
+  - id: A1-zero-warning
+    action: run
+    args: gcc -c -Wall -Wextra -Werror -Iinclude -DCALC_NO_LIB src/vmath_report.c -o /tmp/vc-verify-report.o
+    expect: exit0
+  - id: A2-strings-static-fields
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq bits=[0-9]+.*datamodel=\w+ /tmp/vc-verify-report.o
+    expect: exit0
+  - id: A3-no-malloc
+    action: script
+    args: ./scripts/tools/assert_tree.sh notgrep malloc src/vmath_report.c
+    expect: exit0
+  - id: A4-three-globals
+    action: script
+    args: ./scripts/tools/assert_tree.sh nmglobal /tmp/vc-verify-report.o T vmath_ 3
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-01-04
+    expect: exit0

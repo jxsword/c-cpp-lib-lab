@@ -1,0 +1,31 @@
+# tests/assertions/F-00-01.yml — F-00-01 断言基线（F-02-05 起机器可执行；原始输出见卡回执 PR #1）
+card: F-00-01
+checks:
+  - id: A2-branch-main
+    action: run
+    args: git show-ref --verify --quiet refs/heads/main
+    expect: exit0
+  - id: A2-branch-develop
+    action: run
+    args: git show-ref --verify --quiet refs/heads/develop
+    expect: exit0
+  - id: A2-gitflow-master-is-main
+    action: run
+    args: git config --get gitflow.branch.master
+    expect: regex:^main$
+  - id: A2-versiontag-v
+    action: run
+    args: git config --get gitflow.prefix.versiontag
+    expect: regex:^v$
+  - id: A3-ignore-build
+    action: run
+    args: git check-ignore -v build/x.o
+    expect: exit0
+  - id: A6-ssh-origin
+    action: run
+    args: git remote get-url origin
+    expect: regex:git@github.com:jxsword/c-cpp-lib-lab\.git
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-00-01
+    expect: exit0

@@ -54,7 +54,8 @@ while IFS= read -r f; do
   iconv -f UTF-8 -t UTF-8 "$f" >/dev/null 2>&1 || report "$rel: 非 UTF-8 编码"
 done < <(find "$target" -type f \
           -not -path '*/.git/*' -not -path '*/.mimosa/*' -not -path '*/.zcode/*' \
-          -not -path '*/build/*' -not -path '*/out/*' 2>/dev/null | sort)
+          -not -path '*/build/*' -not -path '*/out/*' \
+          -not -path '*/tests/fixtures/corrupt/*' 2>/dev/null | sort)
 
 if [ "$viol" -eq 0 ]; then
   echo "OK: 编码/换行检查全部通过（目标: $target）"

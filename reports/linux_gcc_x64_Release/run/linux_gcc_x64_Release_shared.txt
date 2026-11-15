@@ -1,0 +1,43 @@
+===== RV-1 =====
+$ /home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared/calctool --self-test
+self-test: add OK
+self-test: dot OK
+self-test: dim-error OK
+self-test: null-error OK
+self-test: info OK
+self-test: logger OK
+self-test: ALL OK
+----- exit code: 0 (expect 0) -----
+
+===== RV-2 =====
+$ /home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared/calctool info
+vmath build info: bits=64 datamodel=LP64 sizeof(long)=8 sizeof(void*)=8 compiler=gcc 15.2.0 cfg=NDEBUG iterator_debug_level=n/a libform=shared-build(dll) crt=default-dynamic(libc);
+----- exit code: 0 (expect 0) -----
+
+===== RV-3 =====
+$ /home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared/calctool add 1.5 2.5
+[calctool] add(1.5,2.5) = 4
+----- exit code: 0 (expect 0) -----
+
+===== RV-3 =====
+$ /home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared/calctool dot 1,2,3 4,5,6
+[calctool] dot(len=3) = 32
+----- exit code: 0 (expect 0) -----
+
+===== RV-3 =====
+$ /home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared/calctool dot 1,2 1,2,3
+dot: dimension mismatch (2 vs 3), error=VMATH_E_DIM
+----- exit code: 2 (expect 2) -----
+
+===== RV-4 =====
+$ /home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared/calctool --dynamic /home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared/libvmath.so.1.0.0 add 1 2
+--dynamic: loaded /home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared/libvmath.so.1.0.0, 6/6 API symbols resolved
+[calctool] add(1,2) = 3
+--dynamic: library unloaded
+----- exit code: 0 (expect 0) -----
+
+===== RV-4 =====
+$ /home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared/calctool --dynamic /nonexistent/libvmath.so add 1 2
+--dynamic: cannot load '/nonexistent/libvmath.so': /nonexistent/libvmath.so: cannot open shared object file: No such file or directory
+----- exit code: 2 (expect 2) -----
+
