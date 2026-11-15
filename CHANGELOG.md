@@ -2,6 +2,10 @@
 
 本文件记录 c-cpp-lib-lab 的所有显著变更。每个里程碑发布对应一个 `v<semver>` 附注 tag（落在 `main`），版本语义见 CONTRIBUTING.md「版本与 tag 策略」一节。
 
+## v1.0.0 (in progress)
+
+- F-09-01 · 可复用环境/组合工作流与全量缓存（S1/S5）：新增 `.github/workflows/_env.yml`（workflow_call 调 setup-env composite，输出 cache-hit）与 `_combo.yml`（workflow_call + workflow_dispatch；构建 → RV → SA → 禁令扫描 → 结论 Job Summary → artifact 五 step，RV/SA 分 step 隔离，仅 Release 上传 reports-* artifact；make 组与 windows 组由专属 workflow 承接）；A3 dispatch 双跑取证登记 R-09 收尾动作（workflow_dispatch 要求文件在默认分支的 GitHub 硬约束）。
+
 ## v0.8.0 (2026-11-16) · Gate B 达成
 
 M8 里程碑发布，**Gate B 完整达成**：阶段 3（纯 C++ OOP）完成——`Vector`/`Statistics`（组合式、STL 留边界内、恰好 3源/2头）、`extern "C"` 门面 + 纯虚 vtable 契约（C 消费者零 C++ 符号依赖）、STL 跨 CRT 反例（MSVC 专属，SKIP 口径）与 ABI 面实测对比（类直出 16 mangled vs 门面 8 C 名）。三阶段语言演进（纯 C → C++ 调 C → 纯 C++ OOP）全部落档。下一里程碑 M9（Gate C）：3 组 CI + 全量 80 + 打包 + 安全 + 报告。
