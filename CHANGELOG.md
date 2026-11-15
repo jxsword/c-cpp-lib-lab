@@ -8,3 +8,4 @@
 - F-00-02 · lint 门禁：新增 `.github/workflows/lint.yml`（`pull_request` → `develop`/`main`），检查行尾空白、UTF-8、`*.ps1` UTF-8 BOM、`*.bat` CRLF 且无 BOM、`*.sh` LF 且无 BOM、禁止二进制入库与跟踪被忽略路径、`5.8.4` 禁用调用关键字扫描（`FORBIDDEN:` 注释白名单）、`docs/PLAN.md` 3.1 卡号格式与 Z1 越界章节引用、`scripts/` 内 `gh` 调用（J7 / K22）；不编译、不跑矩阵。
 - F-00-03 · CI 缓存基础设施（S1）：新增 `.github/{apt,brew,msys2}-packages.txt`、`.github/tool-versions.env`、`.github/actions/setup-env`（composite，覆盖 5.9.2 全部 7 类缓存对象，key 严守 K1–K8，MSVC/SDK 不缓存）、`docs/ci-cache.md`（key/path/失效条件/命中率登记表）与 `.github/workflows/cache-drill.yml` 演练工作流（第二次调用必须命中）。
 - hotfix/plan-02（v1.3.1）：`*.bat`/`*.cmd`/`Makefile.nmake` 的 `.gitattributes` 机制改为 `-text` 保真入库，使 lint 的 CRLF 断言可生效（留痕见 PLAN 12.H）。
+- F-00-04 · 编码与换行规范落地（S6）：`.gitattributes` 补全 5.10 全量编码段（v1.3.1：bat/cmd/nmake `-text`）；新增 `scripts/tools/check_encoding.sh`、`check_encoding.ps1`（UTF-8 BOM）、`scan_dynamic_calls.sh`（5.8.4 禁令扫描，`FORBIDDEN:` 白名单）与首个 Windows 样例 `scripts/windows/env.bat`（CRLF）/`env.ps1`（BOM）；D9/D10 自本卡起生效。
