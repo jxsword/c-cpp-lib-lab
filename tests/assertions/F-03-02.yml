@@ -1,0 +1,27 @@
+# tests/assertions/F-03-02.yml — F-03-02 断言基线
+card: F-03-02
+checks:
+  - id: A1-build-rpath-contains-origin
+    action: script
+    args: ./scripts/tools/assert_tree.sh rpath build/cmake/linux_gcc_x64_Release/shared/calctool ORIGIN
+    expect: exit0
+  - id: A2-install-rpath-origin-lib
+    action: script
+    args: ./scripts/tools/assert_tree.sh rpath /tmp/v03-install/bin/calctool ORIGIN/../lib
+    expect: exit0
+  - id: A3-reports-v030-collected
+    action: script
+    args: ./scripts/tools/assert_tree.sh filecount reports/v0.3.0 *.md 8
+    expect: exit0
+  - id: A4-baseline-55-57
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq ^## 5\.[5-7] docs/baseline.md
+    expect: exit0
+  - id: A5-native-cmake-dirs-disjoint
+    action: script
+    args: ./scripts/tools/assert_tree.sh srcnoartifacts .
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-03-02
+    expect: exit0

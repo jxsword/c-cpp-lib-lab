@@ -8,6 +8,9 @@ project(c_cpp_lib_lab C)
 option(BUILD_SHARED_LIBS "Build vmath as a shared library" ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+# 构建树 RUNPATH 用 $ORIGIN 而非绝对构建路径（使 install 阶段 file(RPATH_CHANGE)
+# 可可靠改写为 INSTALL_RPATH；也使构建树 RUNPATH 与 native.sh 一致为恰 $ORIGIN）
+set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
 
 add_library(vmath
     src/vmath_core.c
@@ -42,3 +45,9 @@ set_target_properties(calctool PROPERTIES
 
 enable_testing()
 add_subdirectory(tests)
+
+install(TARGETS vmath calctool
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+)

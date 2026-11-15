@@ -11,7 +11,7 @@
 | SA-8 | PASS | deps tree: deps/linux_gcc_x64_Release_shared.{json,md} (BFS, realpath dedup, JSON valid) |
 | SA-7 | PASS | all NEEDED resolved via readlink -f (libvmath.so.1 + libc); symlink chain recorded |
 | SA-9 | PASS | glibc dynamic (libc.so.6); MSVC CRT dimension not applicable on ELF |
-| SA-10 | PASS | RUNPATH=$ORIGIN (same-dir search, no unsafe relative path) |
+| SA-10 | PASS | RUNPATH contains $ORIGIN (same-dir search): $ORIGIN |
 
 - 第①层原始输出: layer1/（file/readelf/nm/ar/strings/objdump）
 - 第②层交叉验证: layer2/（lddtree/patchelf/llvm-*，缺失即记录）
