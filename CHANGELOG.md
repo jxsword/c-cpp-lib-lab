@@ -2,7 +2,11 @@
 
 本文件记录 c-cpp-lib-lab 的所有显著变更。每个里程碑发布对应一个 `v<semver>` 附注 tag（落在 `main`），版本语义见 CONTRIBUTING.md「版本与 tag 策略」一节。
 
-## v0.5.0 (in progress)
+## v0.5.0 (2026-11-16)
+
+M5 里程碑发布：② make 组 32 组合三方言全就绪——GNU make（`Makefile`，Linux 8 形态实跑全绿）、nmake（`Makefile.nmake` CRLF 独立文件）、MSBuild（`vmath.vcxproj`）；`verify_make32.{sh,ps1}` parity 口径核验（14+10+8=32、/MD //MT 为 variant 字段、注入差异表落档）。macOS/msys2/nmake/MSBuild 产物级实证委托 F-09-02 runner（口径如实分列，见 `reports/v0.5.0/SUMMARY.md`）。下一里程碑 CMake 三 OS（M6，Gate B 收口）。
+
+- F-05-04 · 32 组合横向对比：新增 `scripts/verify_make32.{sh,ps1}`（32 行唯一标签清单、三方言 14/10/8 口径核验、/MD //MT 为 variant 字段（16 行携带 + clang-cl 参数承载）、Linux gnu info↔标签 8/8 实跑核对）与 `reports/v0.5.0/SUMMARY.md`（三方言注入差异记录表）；不改 5.5 定义。
 
 - F-05-04 · 32 组合横向对比：新增 `scripts/verify_make32.{sh,ps1}`（32 行唯一标签清单、三方言 14/10/8 口径核验、/MD //MT 为 variant 字段（16 行携带 + clang-cl 参数承载）、Linux gnu info↔标签 8/8 实跑核对）与 `reports/v0.5.0/SUMMARY.md`（三方言注入差异记录表）；不改 5.5 定义。
 
