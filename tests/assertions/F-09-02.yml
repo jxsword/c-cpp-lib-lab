@@ -8,9 +8,9 @@ checks:
     args: ls .github/workflows/native-linux.yml .github/workflows/native-macos.yml .github/workflows/native-windows.yml
     expect: exit0
   - id: A1-coverage-24-no-dup
-    action: run
-    args: python3 -c import yaml;d=yaml.safe_load(open('.github/workflows/native-windows.yml'));print(len(d['jobs']['matrix']['strategy']['matrix']['include']))
-    expect: regex:^36$
+    action: script
+    args: ./scripts/tools/assert_tree.sh wfcount .github/workflows/native-windows.yml 36
+    expect: exit0
   - id: A4-uses-env-reusable
     action: script
     args: ./scripts/tools/assert_tree.sh grepeq _combo.yml .github/workflows/native-linux.yml
