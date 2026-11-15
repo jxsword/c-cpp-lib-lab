@@ -192,7 +192,10 @@ static int cmd_dynamic_win(int argc, char **argv)
         (void)FreeLibrary(handle);
         return 2;
     }
-    printf("--dynamic: loaded %s, named lookups 5/6 (+build_info by ordinal below)\n", path);
+    printf("--dynamic: loaded %s, named lookups 5/6 (+build_info contract check below)\n", path);
+#if defined(_MSC_VER)
+    /* .def @5 NONAME（PLAN 5.2 #8）：按名必 NULL（A2），仅 ordinal 5 可寻址（A3）。
+     * 契约只绑定 .def——仅 msvc/clang-cl 构建走 def 导出（clang-cl 定义 _MSC_VER 且同样 /DEF）。 */
     if (api.build_info != NULL) {
         fprintf(stderr, "--dynamic: UNEXPECTED: NONAME symbol resolved by name (A2 violated)\n");
         rc = 2;
@@ -207,6 +210,15 @@ static int cmd_dynamic_win(int argc, char **argv)
         return 2;
     }
     printf("--dynamic: GetProcAddress(h, MAKEINTRESOURCEA(5)) resolved vmath_build_info\n");
+#else
+    /* MinGW（msys2）：无 .def，默认按名全导出（SA-5 语义），build_info 按名必须可解析 */
+    if (api.build_info == NULL) {
+        fprintf(stderr, "--dynamic: UNEXPECTED: build_info not resolvable by name on MinGW\n");
+        rc = 2;
+    } else {
+        printf("--dynamic: build_info resolved by name (MinGW default export, no NONAME contract)\n");
+    }
+#endif
 
     api.set_logger(cli_log);
     if (strcmp(argv[arg_base], "add") == 0 && arg_base + 2 < argc) {

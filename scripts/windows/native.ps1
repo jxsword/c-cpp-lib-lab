@@ -45,6 +45,14 @@ $src = Join-Path $root 'src'
 try {
     if ($Toolset -eq 'msvc' -or $Toolset -eq 'clang-cl') {
         $cc = if ($Toolset -eq 'msvc') { 'cl' } else { 'clang-cl' }
+        # Git usr/bin 携带 coreutils link(1)（与 VS link.exe 同名不同物）且在 PATH
+        # 中先于 VS bin——将 VC 的 Hostx64\<目标> bin 目录前置到 PATH 最前；
+        # cl 内部链接不受影响（cl 从自身目录解析 link.exe），独立 link/lib 调用受影响
+        $vcarch = if ($Variant.StartsWith('x64')) { 'x64' } else { 'x86' }
+        if ($env:VCToolsInstallDir) {
+            $vcbin = Join-Path $env:VCToolsInstallDir "bin\Hostx64\$vcarch"
+            if (Test-Path $vcbin) { $env:PATH = "$vcbin;$env:PATH" }
+        }
         $crt = Get-MsvcCrtFlag $Variant $Cfg
         if ($Kind -eq 'static') {
             Invoke-Logged $cc $clCfg $crt '/DCALC_STATIC' "/I$inc" '/c' "$src\vmath_core.c" "/Fo$out\vmath_core.obj"
