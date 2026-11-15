@@ -1,0 +1,213 @@
+name: 'setup-env'
+description: >-
+  Package install + per-combination cache restore/save (S1 / PLAN 5.9.2, K1-K8).
+  Covers all 7 cache object classes: apt debs, Linux ccache, Homebrew downloads,
+  macOS ccache, MSYS2 pacman (internal), Windows tools, Windows sccache.
+  Restore/save are split (actions/cache/restore + /save with if: always()) so that
+  failed jobs still persist downloaded packages — K7 (upstream `save-always` input
+  is deprecated and does not work as intended).
+  MSVC toolset & Windows SDK are NOT cached (runner-preinstalled; too large, no benefit).
+
+inputs:
+  toolset:
+    description: 'gcc | clang | msvc | msys2 | clang-cl (PLAN 5.5)'
+    required: true
+  variant:
+    description: 'x86 | x64 | x86_MD | x86_MT | x64_MD | x64_MT | MINGW64 | MINGW32 | CLANG64 | UCRT64 | arm64 (PLAN 1.3)'
+    required: true
+  cfg:
+    description: 'Debug | Release'
+    required: true
+  kind:
+    description: 'static | shared (P3: in-combination dual form)'
+    required: false
+    default: 'static'
+
+outputs:
+  # restore@v4 恒定输出 cache-hit（'true'/'false'），不会像 combined 版那样 miss 时缺省
+  cache-hit:
+    description: 'compile cache (ccache) hit of this invocation'
+    value: ${{ runner.os == 'Linux' && steps.cc-restore.outputs.cache-hit || steps.mccache-restore.outputs.cache-hit }}
+  apt-cache-hit:
+    description: 'Linux apt deb cache hit'
+    value: ${{ steps.apt-restore.outputs.cache-hit }}
+  brew-cache-hit:
+    description: 'macOS Homebrew download cache hit'
+    value: ${{ steps.brew-restore.outputs.cache-hit }}
+  win-tools-cache-hit:
+    description: 'Windows tools (LLVM/Ninja/CMake/Dependencies CLI) cache hit'
+    value: ${{ steps.wintools-restore.outputs.cache-hit }}
+  sccache-cache-hit:
+    description: 'Windows sccache cache hit'
+    value: ${{ steps.sccache-restore.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+
+    # ── 1/7 Linux: apt deb 包（5.9.2 行 1）─────────────────────────────────────
+    # 镜像预置的 archives/lock 与 partial/ 为 root 属主，restore 解包 tar 会因
+    # 无权覆盖而失败（exit 2 → 视为未命中）——restore 之前先收敛属主
+    - name: Prepare apt cache dir (runner-writable)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo mkdir -p /var/cache/apt/archives/partial
+        sudo chown -R "$(id -un):" /var/cache/apt/archives
+
+    - name: Restore apt debs
+      id: apt-restore
+      if: runner.os == 'Linux'
+      uses: actions/cache/restore@v4
+      with:
+        path: /var/cache/apt/archives
+        key: apt-${{ runner.os }}-${{ hashFiles('.github/apt-packages.txt') }}
+
+    - name: Install apt packages
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        # partial 子目录 root 私有会导致 post-tar 不可读，预建并收敛属主
+        sudo mkdir -p /var/cache/apt/archives/partial
+        sudo chown -R "$(id -un):" /var/cache/apt/archives
+        sudo xargs -a .github/apt-packages.txt apt-get install -y --no-install-recommends
+        sudo chown -R "$(id -un):" /var/cache/apt/archives
+
+    - name: Save apt debs
+      if: always() && runner.os == 'Linux'
+      uses: actions/cache/save@v4
+      with:
+        path: /var/cache/apt/archives
+        key: ${{ steps.apt-restore.outputs.cache-primary-key }}
+
+    # ── 2/7 Linux: ccache 编译缓存（K1：OS+toolset+variant+cfg+kind；K3：同前缀回退）──
+    - name: Restore Linux ccache
+      id: cc-restore
+      if: runner.os == 'Linux'
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/.cache/ccache
+        key: cc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-${{ github.run_id }}
+        restore-keys: cc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-
+
+    - name: Save Linux ccache
+      if: always() && runner.os == 'Linux'
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.cache/ccache
+        key: ${{ steps.cc-restore.outputs.cache-primary-key }}
+
+    # ── 3/7 macOS: Homebrew 下载缓存 ────────────────────────────────────────────
+    - name: Restore Homebrew downloads
+      id: brew-restore
+      if: runner.os == 'macOS'
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          ~/Library/Caches/Homebrew
+          ~/.brew-cache
+        key: brew-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/brew-packages.txt') }}
+
+    - name: Install brew packages
+      if: runner.os == 'macOS'
+      shell: bash
+      run: xargs -a .github/brew-packages.txt brew install
+
+    - name: Save Homebrew downloads
+      if: always() && runner.os == 'macOS'
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          ~/Library/Caches/Homebrew
+          ~/.brew-cache
+        key: ${{ steps.brew-restore.outputs.cache-primary-key }}
+
+    # ── 4/7 macOS: ccache 编译缓存（K1 同上）────────────────────────────────────
+    - name: Restore macOS ccache
+      id: mccache-restore
+      if: runner.os == 'macOS'
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/.cache/ccache
+        key: cc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-${{ github.run_id }}
+        restore-keys: cc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-
+
+    - name: Save macOS ccache
+      if: always() && runner.os == 'macOS'
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.cache/ccache
+        key: ${{ steps.mccache-restore.outputs.cache-primary-key }}
+
+    # ── 5/7 Windows: MSYS2 pacman 包（setup-msys2 内部缓存，按 msystem 管理）─────
+    - name: Setup MSYS2 with pacman cache
+      id: msys2
+      if: runner.os == 'Windows' && startsWith(inputs.toolset, 'msys2')
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ inputs.variant }}
+        cache: true
+        update: false
+        install: >-
+          git
+          make
+
+    # ── 6/7 Windows: LLVM / Ninja / CMake / Dependencies CLI 工具缓存 ───────────
+    - name: Restore Windows tools
+      id: wintools-restore
+      if: runner.os == 'Windows'
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          C:\tools\llvm
+          C:\tools\ninja
+          C:\tools\deps
+        key: win-tools-${{ inputs.toolset }}-${{ hashFiles('.github/tool-versions.env') }}
+
+    - name: Save Windows tools
+      if: always() && runner.os == 'Windows'
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          C:\tools\llvm
+          C:\tools\ninja
+          C:\tools\deps
+        key: ${{ steps.wintools-restore.outputs.cache-primary-key }}
+
+    # ── 7/7 Windows: sccache 编译缓存（K1 同上）─────────────────────────────────
+    - name: Restore Windows sccache
+      id: sccache-restore
+      if: runner.os == 'Windows'
+      uses: actions/cache/restore@v4
+      with:
+        path: ~\AppData\Local\sccache
+        key: sc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-${{ github.run_id }}
+        restore-keys: sc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-
+
+    - name: Save Windows sccache
+      if: always() && runner.os == 'Windows'
+      uses: actions/cache/save@v4
+      with:
+        path: ~\AppData\Local\sccache
+        key: ${{ steps.sccache-restore.outputs.cache-primary-key }}
+
+    # ── K5：命中/未命中写入 $GITHUB_STEP_SUMMARY ────────────────────────────────
+    - name: Report cache hits to job summary
+      if: always()
+      shell: bash
+      run: |
+        {
+          echo '### Cache hits（K5）'
+          echo "| 对象 | key | hit |"
+          echo "|---|---|---|"
+          echo "| apt debs | ${{ steps.apt-restore.outputs.cache-primary-key || '-' }} | ${{ steps.apt-restore.outputs.cache-hit || 'n/a' }} |"
+          echo "| ccache | ${{ steps.cc-restore.outputs.cache-primary-key || steps.mccache-restore.outputs.cache-primary-key || '-' }} | ${{ steps.cc-restore.outputs.cache-hit || steps.mccache-restore.outputs.cache-hit || 'n/a' }} |"
+          echo "| Homebrew | ${{ steps.brew-restore.outputs.cache-primary-key || '-' }} | ${{ steps.brew-restore.outputs.cache-hit || 'n/a' }} |"
+          echo "| MSYS2 pacman | (setup-msys2 内部管理) | n/a（本步未触发时） |"
+          echo "| win tools | ${{ steps.wintools-restore.outputs.cache-primary-key || '-' }} | ${{ steps.wintools-restore.outputs.cache-hit || 'n/a' }} |"
+          echo "| sccache | ${{ steps.sccache-restore.outputs.cache-primary-key || '-' }} | ${{ steps.sccache-restore.outputs.cache-hit || 'n/a' }} |"
+          echo ""
+          echo '> 不缓存：MSVC 工具集与 Windows SDK（runner 预装；体积过大、缓存无收益）——PLAN 5.9.2'
+          echo '> K7：save 步骤均带 if: always()（上游 save-always 已弃用且不按预期工作）'
+        } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,57 @@
+# 缓存演练（F-00-03 A4）：warm job 首次调用 setup-env（未命中→保存），
+# verify job 第二次调用（同一 run_id → key 相同 → 必须命中）。
+# 本 PR 起以 paths 过滤触发；亦支持 workflow_dispatch 手动演练。
+name: cache-drill
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/actions/setup-env/**'
+      - '.github/*-packages.txt'
+      - '.github/tool-versions.env'
+      - '.github/workflows/cache-drill.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  warm:
+    name: '1st call (warm, expect miss)'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: setup
+        uses: ./.github/actions/setup-env
+        with:
+          toolset: gcc
+          variant: x64
+          cfg: Release
+          kind: static
+      # 放置非空标记，模拟编译缓存内容，保证 save-always 有物可存
+      - name: Seed compile-cache marker
+        run: |
+          mkdir -p ~/.cache/ccache
+          echo "drill $(date -u +%FT%TZ)" > ~/.cache/ccache/.drill-marker
+      - name: Report warm results
+        run: |
+          echo "warm: cache-hit=${{ steps.setup.outputs.cache-hit }} apt=${{ steps.setup.outputs.apt-cache-hit }}" >> "$GITHUB_STEP_SUMMARY"
+
+  verify:
+    name: '2nd call (verify, expect hit)'
+    needs: warm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: setup
+        uses: ./.github/actions/setup-env
+        with:
+          toolset: gcc
+          variant: x64
+          cfg: Release
+          kind: static
+      - name: Assert second call hits (A4)
+        run: |
+          test "${{ steps.setup.outputs.cache-hit }}" = "true" || { echo "FAIL: compile cache 未命中: ${{ steps.setup.outputs.cache-hit }}"; exit 1; }
+          test "${{ steps.setup.outputs.apt-cache-hit }}" = "true" || { echo "FAIL: apt cache 未命中: ${{ steps.setup.outputs.apt-cache-hit }}"; exit 1; }
+          echo 'A4 ✓：第二次调用 cache-hit == true（ccache 与 apt 双命中）' >> "$GITHUB_STEP_SUMMARY"
