@@ -3,7 +3,7 @@
 # 用法: check_encoding.sh [目标目录]   （默认: 仓库根，即本脚本上两级）
 # 规则: *.ps1 需 UTF-8 BOM；*.bat/*.cmd 无 BOM 且 CRLF（无裸 LF）；*.sh 无 BOM 且 LF；
 #       Makefile.nmake CRLF；全部文件 UTF-8 有效。
-# 本脚本不得调用 gh（9.4 J7）。
+# 本脚本不得调用 GitHub CLI（9.4 J7）。
 set -u
 
 target="${1:-}"

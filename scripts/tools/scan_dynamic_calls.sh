@@ -3,7 +3,7 @@
 # 用法: scan_dynamic_calls.sh [目标目录或文件...]   （默认: 仓库 scripts/）
 # 规则: 命中 5.8.4 禁用调用即 FAIL（含动态加载、依赖解析、运行期注入/跟踪关键字）；
 #       注释行含 FORBIDDEN: 前缀的引用按 5.8.4 白名单豁免。
-# 本脚本不得调用 gh（9.4 J7）。
+# 本脚本不得调用 GitHub CLI（9.4 J7）。
 set -u
 
 if [ "$#" -gt 0 ]; then
