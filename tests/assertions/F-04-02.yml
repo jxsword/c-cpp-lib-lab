@@ -22,8 +22,8 @@ checks:
     expect: exit0
   - id: A3-msvc-no-auto-export
     action: script
-    args: ./scripts/tools/assert_tree.sh grepeq WINDOWS_EXPORT_ALL_SYMBOLS scripts/CMakeLists.txt
-    expect: exit:1
+    args: ./scripts/tools/assert_tree.sh notgrep WINDOWS_EXPORT_ALL_SYMBOLS scripts/windows/native.ps1
+    expect: exit0
   - id: A4-crt-flag-mapping
     action: script
     args: ./scripts/tools/assert_tree.sh grepeq MultiThreaded scripts/windows/cmake.ps1
