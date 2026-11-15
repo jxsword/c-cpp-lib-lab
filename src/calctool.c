@@ -391,6 +391,7 @@ static int cmd_self_test(void)
 /* RV 通道命令：--dynamic [libpath] <command> [args]
  * dlopen 绝对路径 → dlsym 按名 → 函数表（成员序=ordinal）→ 调用 →
  * set_logger(NULL) 注销 → dlclose → 卸载后不持有库内地址。 */
+#if !defined(_WIN32) /* dlopen/dlsym/dlclose 为 POSIX 专属；Windows 走 cmd_dynamic_win */
 static int cmd_dynamic(int argc, char **argv)
 {
     char path[4096];
@@ -480,6 +481,8 @@ static int cmd_dynamic(int argc, char **argv)
     memset(&api, 0, sizeof api);
     return rc;
 }
+
+#endif /* !_WIN32 */
 
 /* 桩：打包发布属 F-09-07 */
 static int cmd_bundle_stub(void)
