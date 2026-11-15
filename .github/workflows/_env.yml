@@ -1,0 +1,43 @@
+# _env.yml —— reusable：环境安装 + 全量缓存（F-09-01；PLAN 8.2 / 5.9）
+# 调用 .github/actions/setup-env composite action，按 inputs 恢复 5.9.2 全部 7 类缓存。
+# outputs.cache-hit 供调用方（_combo / all）判定 A3。
+name: _env
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      toolset:
+        required: true
+        type: string
+      variant:
+        required: true
+        type: string
+      cfg:
+        required: true
+        type: string
+      kind:
+        required: true
+        type: string
+    outputs:
+      cache-hit:
+        description: 'compile cache (ccache/sccache) hit'
+        value: ${{ jobs.env.outputs.cache_hit }}
+
+jobs:
+  env:
+    runs-on: ${{ inputs.os == 'linux' && 'ubuntu-latest' || inputs.os == 'macos' && 'macos-14' || 'windows-latest' }}
+    outputs:
+      cache_hit: ${{ steps.setup.outputs.cache-hit }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup environment with full per-combo cache (5.9.2)
+        id: setup
+        uses: ./.github/actions/setup-env
+        with:
+          toolset: ${{ inputs.toolset }}
+          variant: ${{ inputs.variant }}
+          cfg: ${{ inputs.cfg }}
+          kind: ${{ inputs.kind }}

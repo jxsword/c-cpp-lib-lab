@@ -1,0 +1,131 @@
+# _combo.yml —— reusable：单组合「构建 → RV → SA → 结论 → artifact」（F-09-01；S5/S8）
+# 五个 step 顺序：build → run(RV) → analyze(SA) → summary → artifact。
+# RV 与 SA 为不同 step、不同脚本、不同报告目录（P5/C18 隔离，A4）。
+# Debug 产物不作为发布 artifact 上传（A5：仅 Release 上传，且名标 reports-）。
+# 亦支持 workflow_dispatch 单独演练（卡面命令：同组合连跑两次验证 cache-hit）。
+name: _combo
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      toolset:
+        required: true
+        type: string
+      variant:
+        required: true
+        type: string
+      cfg:
+        required: true
+        type: string
+      kind:
+        required: true
+        type: string
+      group:
+        required: true
+        type: string # native | make/gnu | make/nmake | make/msbuild | cmake
+    outputs:
+      sa-pass:
+        description: 'SA-1..SA-10 all PASS'
+        value: ${{ jobs.combo.outputs.sa_pass }}
+
+jobs:
+  env:
+    uses: ./.github/workflows/_env.yml
+    with:
+      os: ${{ inputs.os }}
+      toolset: ${{ inputs.toolset }}
+      variant: ${{ inputs.variant }}
+      cfg: ${{ inputs.cfg }}
+      kind: ${{ inputs.kind }}
+
+  combo:
+    needs: env
+    runs-on: ${{ inputs.os == 'linux' && 'ubuntu-latest' || inputs.os == 'macos' && 'macos-14' || 'windows-latest' }}
+    outputs:
+      sa_pass: ${{ steps.analyze.outcome == 'success' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---- step 1: build（构建，按 group/OS 分派脚本） ----
+      - name: Build combo
+        id: build
+        shell: bash
+        run: |
+          set -e
+          TAG="${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          case "${{ inputs.group }}" in
+            native)
+              case "${{ inputs.os }}" in
+                linux) ./scripts/linux/native.sh "${{ inputs.variant }}" "${{ inputs.cfg }}" "${{ inputs.kind }}" ;;
+                macos) ./scripts/macos/native.sh "${{ inputs.variant }}" "${{ inputs.cfg }}" "${{ inputs.kind }}" ;;
+                *) echo "SKIP: windows native handled by native-windows.yml (F-09-02)"; exit 0 ;;
+              esac ;;
+            cmake)
+              case "${{ inputs.os }}" in
+                linux) ./scripts/linux/cmake.sh "${{ inputs.variant }}" "${{ inputs.cfg }}" "${{ inputs.kind }}" ;;
+                macos) ./scripts/macos/cmake.sh "${{ inputs.variant }}" "${{ inputs.cfg }}" "${{ inputs.kind }}" ;;
+                *) echo "SKIP: windows cmake handled by cmake-windows.yml (F-09-04)"; exit 0 ;;
+              esac ;;
+            *)
+              echo "SKIP: make group handled by make-*.yml / msbuild-windows.yml (F-09-03)"
+              exit 0
+              ;;
+          esac
+
+      # ---- step 2: RV 运行输出采集（独立 step / 独立脚本 / reports/<tag>/run/） ----
+      - name: RV run output capture
+        id: rv
+        if: always() && steps.build.outcome == 'success'
+        shell: bash
+        run: |
+          TAG="${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
+          case "${{ inputs.os }}" in
+            linux) ./scripts/linux/run.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
+            macos) ./scripts/macos/run.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
+            windows) pwsh -File scripts/windows/run.ps1 -Tag "$TAG" -Kind "${{ inputs.kind }}" -Group "${{ inputs.group }}" ;;
+          esac
+
+      # ---- step 3: SA 三层静态分析（独立 step / 独立脚本 / reports/<tag>/<group>/） ----
+      - name: SA static analysis
+        id: analyze
+        if: always() && steps.build.outcome == 'success'
+        shell: bash
+        run: |
+          TAG="${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
+          case "${{ inputs.os }}" in
+            linux) ./scripts/linux/analyze.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
+            macos) ./scripts/macos/analyze.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
+            windows) pwsh -File scripts/windows/static_analyze.ps1 -Tag "$TAG" -Kind "${{ inputs.kind }}" -Group "${{ inputs.group }}" ;;
+          esac
+
+      # ---- step 4: 5.8.4 禁令扫描（A6：CI 中执行且零命中） ----
+      - name: Scan dynamic-call bans
+        if: always()
+        shell: bash
+        run: ./scripts/tools/scan_dynamic_calls.sh
+
+      # ---- step 5: 结论表 + artifact（A5：仅 Release 上传发布报告） ----
+      - name: Summary to job summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '### Combo ${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }} / ${{ inputs.kind }}'
+            echo '- cache-hit: ${{ needs.env.outputs.cache-hit }}'
+            echo '- build: ${{ steps.build.outcome }} / rv: ${{ steps.rv.outcome }} / sa: ${{ steps.analyze.outcome }}'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload reports artifact
+        if: always() && inputs.cfg == 'Release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}_${{ inputs.kind }}
+          path: |
+            reports/**/native/*.md
+            reports/**/run/*.txt
+            reports/**/deps/*.json
+          if-no-files-found: ignore
