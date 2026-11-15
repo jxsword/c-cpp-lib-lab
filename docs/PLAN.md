@@ -1,10 +1,10 @@
 # c-cpp-lib-lab 开发计划
 
 > **文档性质**：独立开发计划（Execution Plan / Git Flow Work Breakdown）。**完全自包含**：zcode 只凭本文件即可完成全部开发、构建、测试与分析，**不依赖、不引用任何外部文档**（校验见 `0.7.4`）。
-> **来源与版本**：v1.0 由既有实战项目规格重组而来；v1.1、v1.2 经补充需求修订；**v1.3 = v1.2 + `hotfix/plan-01` 首次启动引导期修订（M1–M5 / S1 / S3，留痕见 `12.H`）**；**v1.3.1 = v1.3 + `hotfix/plan-02`（`*.bat`/`*.cmd`/`Makefile.nmake` 的 `.gitattributes` 机制由 `text eol=crlf` 修正为 `-text` 保真入库，使 lint 的 CRLF 断言可生效，留痕见 `12.H`）**。**v1.2 起所有执行所需的技术基线、参考代码骨架与知识补遗已全部内联**（第 5 章、第 7 章、附录 A–H）；外部学习资料与本计划**无引用关系**，开发时无需查阅。
+> **来源与版本**：v1.0 由既有实战项目规格重组而来；v1.1、v1.2 经补充需求修订；**v1.3 = v1.2 + `hotfix/plan-01` 首次启动引导期修订（M1–M5 / S1 / S3，留痕见 `12.H`）**；**v1.3.1 = v1.3 + `hotfix/plan-02`（`*.bat`/`*.cmd`/`Makefile.nmake` 的 `.gitattributes` 机制由 `text eol=crlf` 修正为 `-text` 保真入库，使 lint 的 CRLF 断言可生效，留痕见 `12.H`）**；**v1.3.2 = v1.3.1 + `hotfix/plan-03`（`1.4` 的 `.gitignore` 二进制清单逐行化，与实现及 gitignore 语法对齐，留痕见 `12.H`）**。**v1.2 起所有执行所需的技术基线、参考代码骨架与知识补遗已全部内联**（第 5 章、第 7 章、附录 A–H）；外部学习资料与本计划**无引用关系**，开发时无需查阅。
 > **适用**：在 **zcode** 中按 **git flow** 逐卡开发、调试、验证；所有 Git / GitHub 侧操作由 agent 调用 `gh` 完成（见 `0.7.3`、`8.5`）。
 > **项目名**：`c-cpp-lib-lab`（仓库名 / 根目录名）｜**库**：`vmath`｜**可执行**：`calctool`
-> **版本**：**Plan v1.3.1** · 完全自包含 + 仓库 / `gh` 前置条件 + 首次启动引导期修订（`hotfix/plan-01`）+ `hotfix/plan-02`（bat/cmd/nmake 保真） · **状态：已确认，git flow 逐卡执行中**
+> **版本**：**Plan v1.3.2** · 完全自包含 + 仓库 / `gh` 前置条件 + 首次启动引导期修订（`hotfix/plan-01`）+ `hotfix/plan-02`（bat/cmd/nmake 保真）+ `hotfix/plan-03`（.gitignore 清单逐行化） · **状态：已确认，git flow 逐卡执行中**
 > **本文件不含**：任何已编译验证的工程源码、git 仓库、CI 运行结果。它只定义「做什么、在哪个分支做、怎么算做完」。
 > **本次交付边界**：只修订本计划文件；**未初始化仓库、未创建任何源码、未执行任何构建、未通过 `gh` 做任何写操作**。
 
@@ -231,8 +231,21 @@ build/                                     # 整体被 .gitignore 忽略
 /reports/**/*.log
 CMakeCache.txt
 CMakeFiles/
-*.o *.obj *.a *.lib *.so *.so.* *.dll *.dylib *.pdb *.ilk *.exp *.dSYM/
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dll
+*.dylib
+*.pdb
+*.ilk
+*.exp
+*.dSYM/
 ```
+
+> **v1.3.2 注**：gitignore 语法一行一 pattern，二进制清单必须逐行列出——单行空格连写会被当作单个含空格 pattern 而静默失效（`F-00-01` 实测：独立 `x.o` 未被忽略、A3 断言 FAIL 后按本形式展开）。仓库 `.gitignore` 自 `F-00-01` 起即按逐行实现，本修订仅为使计划文本与实现对齐。
 
 > **组合内双形态**：每个组合必须同时产出 `static/` 与 `shared/` 两套产物（库 + 对应 `calctool`），作为**组合内必建项**，不额外乘组合数。此解读登记为待拍板 **P3**（`11.2`）。
 
@@ -2186,9 +2199,19 @@ on:
 
 > 仓库侧同步：`.gitattributes` 初版中由 `F-00-01` 写入的 `*.bat text eol=crlf` 行，由独立 chore PR 依本修正改为 `*.bat -text`（不混入任务卡分支）。
 
+**hotfix/plan-03 修订记录（v1.3.2）**
+
+> 背景：`F-00-01` 实测——`1.4` 原文中 `.gitignore` 二进制清单为单行空格连写；gitignore 语法一行一 pattern，连写会被当作单个含空格 pattern 静默失效（独立 `x.o` 不被忽略，A3 断言 FAIL）。当时实现侧已按语义展开为逐行并留痕于卡回执；本轮将计划文本对齐实现。
+
+| # | 复审发现 | v1.3.2 修法 | 落点 |
+|---|---|---|---|
+| **G1** | `1.4` 的 `.gitignore` 关键项块为单行连写，与 gitignore 语法及仓库实现不一致 | 二进制清单拆为逐行 pattern，并补注失效机理 | `1.4` |
+
+> 校验：仓库 `.gitignore` 无需改动（自 `F-00-01` 起即逐行实现）；`F-00-02` A2/A3 断言语义不变。
+
 ---
 
-**计划文件结束** · `c-cpp-lib-lab` · **Plan v1.3.1** · **完全自包含 + 仓库 / `gh` 前置条件 + 引导期修订（hotfix/plan-01）+ bat/cmd/nmake 保真修正（hotfix/plan-02）** · **状态：已确认，执行中**
+**计划文件结束** · `c-cpp-lib-lab` · **Plan v1.3.2** · **完全自包含 + 仓库 / `gh` 前置条件 + 引导期修订（hotfix/plan-01）+ bat/cmd/nmake 保真修正（hotfix/plan-02）+ .gitignore 清单逐行化（hotfix/plan-03）** · **状态：已确认，执行中**
 
 > 10 个里程碑（M0–M9）、**44 张 feature 卡** + 10 次 release（`3.1` 勾选清单共 54 项）、3 个能力档位（Gate A/B/C）、**80 个组合**（原生 24 + make 32 + cmake 24）、3 组可单独 dispatch 的 CI 工作流（10 条 / 12 条 / 16 文件三种口径见 `8.2`）+ `all.yml` 全量编排；`0.3.1` 首次健康检查、`2.6` 分期生效表、`12.H` 修订留痕；**不依赖任何外部文档**，zcode 只凭本文件即可逐卡开发。
 > 本次仅修订本计划（`hotfix/plan-01`：M1–M5 / S1 / S3），**未初始化仓库、未写源码、未执行构建、未通过 `gh` 做任何写操作**。可回复「**确认 v1.3**」收尾，或「**hotfix/plan-02：…**」调整 `11.2` 待拍板项，或「**做到 Gate A**」在 zcode 中从 `F-00-01` 开始按 git flow 领卡。
