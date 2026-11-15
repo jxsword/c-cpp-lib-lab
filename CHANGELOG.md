@@ -4,6 +4,8 @@
 
 ## v1.0.0 (in progress)
 
+- F-09-04 · Group C cmake 组 3 条工作流（24 组合）：新增 `cmake-{linux,macos}.yml`（6 组合）+ `cmake-windows.yml`（msvc 8 + msys2 8 + clang-cl 2 = 18，36 形态行）；`_combo.yml` 的 cmake/windows 分支补真实构建（msvc/clang-cl 强制 `-G Ninja`（S9）+ `CMAKE_MSVC_RUNTIME_LIBRARY` 按 variant 注入，msys2 走 MinGW 生成器）；脚本化核验 4+2+18=24 无重复；dispatch 实测登记 R-09 批量执行。
+
 - F-09-03 · Group M make 组 4 条工作流（32 组合）：新增 `make-{linux,macos}.yml`（GNU make 6 组合）+ `make-windows.yml`（msys2 GNU make 8 + nmake 10，双 job）+ `msbuild-windows.yml`（8）；`_combo.yml` 补 `make/gnu`（Makefile 驱动）、`make/msys2`（各环境 make.exe + --out-implib）、`make/nmake`/`make/msbuild`（nmake.ps1/msbuild.ps1）构建分支；脚本化核验 14+10+8=32 无重复；dispatch 实测登记 R-09 批量执行。
 
 - F-09-02 · Group N 原生组 3 条工作流（24 组合）：新增 `native-{linux,macos,windows}.yml`（各自 `workflow_dispatch` + inputs 过滤（缺省全量）、`fail-fast: false`、matrix include 展开 → `_combo.yml`、`group: native`）——Linux 4 + macOS 2 + Windows 18（msvc 8 + msys2 8 + clang-cl 2）脚本化核验 24 组合无重复；dispatch 实测（A2/A3/A4）登记 R-09 收尾批量执行（默认分支硬约束）。

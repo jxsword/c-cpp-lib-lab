@@ -68,7 +68,17 @@ jobs:
               case "${{ inputs.os }}" in
                 linux) ./scripts/linux/cmake.sh "${{ inputs.variant }}" "${{ inputs.cfg }}" "${{ inputs.kind }}" ;;
                 macos) ./scripts/macos/cmake.sh "${{ inputs.variant }}" "${{ inputs.cfg }}" "${{ inputs.kind }}" ;;
-                *) echo "SKIP: windows cmake handled by cmake-windows.yml (F-09-04)"; exit 0 ;;
+                windows)
+                  # msvc/clang-cl 强制 Ninja（S9）；msys2 走 MinGW Makefiles
+                  RTL=""
+                  case "${{ inputs.variant }}" in
+                    *_MD) RTL=MultiThreadedDLL ;;
+                    *_MT) RTL=MultiThreaded ;;
+                  esac
+                  RTARGS=""
+                  [ -n "$RTL" ] && RTARGS="-DCMAKE_MSVC_RUNTIME_LIBRARY=$RTL"
+                  pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/cmake.ps1 -Toolset "${{ inputs.toolset }}" -Variant "${{ inputs.variant }}" -Cfg "${{ inputs.cfg }}" -Kind "${{ inputs.kind }}" $RTARGS
+                  ;;
               esac ;;
             make/gnu)
               # GNU make 方言（linux/macos；msys2 由 make-windows.yml 在 windows runner 处理）
