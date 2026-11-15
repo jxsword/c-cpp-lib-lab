@@ -6,6 +6,10 @@
 
 M0 里程碑发布：仓库骨架与 git flow（main/develop 受保护、SSH origin）、lint 门禁、CI 缓存基础设施（S1）、编码/换行规范与静态分析禁令基线（S6/S7，D9/D10 生效）全部就绪；`docs/PLAN.md`（v1.3.2）为唯一权威计划。Gate A 前置达成，下一里程碑进入纯 C 源码（M1）。
 
+## v0.4.0 (in progress)
+
+- F-04-01 · macOS 原生与静态分析脚本（bash）：新增 `scripts/macos/` 全套（env/common/native/make/cmake/build_all/static_analyze/deps_tree/run/bundle，bash/LF/无 BOM）——`-dynamiclib -Wl,-install_name,@rpath/libvmath.dylib -fvisibility=hidden`、arm64 主组合 + x86_64 附加架构覆盖、x86 输入 SKIP（10.15 起 32 位移除，exit 0）、三层静态分析（otool/lipo/nm -gU/dwarfdump/dyld_info + `libSystem.B.dylib` shared-cache 分类）；产物级断言（A1–A5）待 F-09-02 macos runner CI 实证。
+
 ## v0.3.0 (2026-11-16) · Gate A
 
 M3 里程碑发布，**Gate A 达成**：① 原生 Linux 4 组合 + ③ CMake Linux 4 组合（各 × static/shared 双形态 = 16 个组合形态）全部构建 + 自测绿；SA-1…SA-10（三层静态分析）与 RV-1…RV-4 结论齐全（`reports/v0.3.0/SUMMARY.md`）；CMake install RPATH 两阶段差异实证（`$ORIGIN` → `$ORIGIN/../lib`）；`verify_card.sh` 17 卡基线全回归 PASS。README 已注明当前仅 Linux 单平台，三 OS 见 M4–M6（Gate B）。
