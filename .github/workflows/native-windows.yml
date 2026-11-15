@@ -57,11 +57,6 @@ jobs:
           - { toolset: clang-cl, variant: x64, cfg: Debug, kind: shared }
           - { toolset: clang-cl, variant: x64, cfg: Release, kind: static }
           - { toolset: clang-cl, variant: x64, cfg: Release, kind: shared }
-    if: >-
-      (inputs.toolset == '' || inputs.toolset == matrix.toolset) &&
-      (inputs.variant == '' || inputs.variant == matrix.variant) &&
-      (inputs.cfg == '' || inputs.cfg == matrix.cfg) &&
-      (inputs.kind == '' || inputs.kind == matrix.kind)
     uses: ./.github/workflows/_combo.yml
     with:
       os: windows
@@ -69,4 +64,7 @@ jobs:
       variant: ${{ matrix.variant }}
       cfg: ${{ matrix.cfg }}
       kind: ${{ matrix.kind }}
+      filter_variant: ${{ inputs.variant }}
+      filter_cfg: ${{ inputs.cfg }}
+      filter_kind: ${{ inputs.kind }}
       group: native
