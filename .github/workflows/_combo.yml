@@ -81,7 +81,8 @@ jobs:
         shell: bash
         run: |
           set -e
-          TAG="${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
+          OSPREFIX="${{ inputs.os }}"; [ "$OSPREFIX" = windows ] && OSPREFIX=win
+          TAG="${OSPREFIX}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           case "${{ inputs.group }}" in
             native)
@@ -109,7 +110,8 @@ jobs:
             make/gnu)
               # GNU make 方言（linux/macos；msys2 由 make-windows.yml 在 windows runner 处理）
               SRCDIR="$(pwd)"
-              TAG="${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
+              OSPREFIX="${{ inputs.os }}"; [ "$OSPREFIX" = windows ] && OSPREFIX=win
+          TAG="${OSPREFIX}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
               B="build/make/gnu/$TAG/${{ inputs.kind }}"
               mkdir -p "$B" && cd "$B"
               make -f "$SRCDIR/Makefile" srcdir="$SRCDIR" VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" selftest
@@ -146,7 +148,8 @@ jobs:
         if: always() && env.FILTER_MATCH == 'true' && steps.build.outcome == 'success'
         shell: bash
         run: |
-          TAG="${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
+          OSPREFIX="${{ inputs.os }}"; [ "$OSPREFIX" = windows ] && OSPREFIX=win
+          TAG="${OSPREFIX}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
           case "${{ inputs.os }}" in
             linux) ./scripts/linux/run.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
             macos) ./scripts/macos/run.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
@@ -159,7 +162,8 @@ jobs:
         if: always() && env.FILTER_MATCH == 'true' && steps.build.outcome == 'success'
         shell: bash
         run: |
-          TAG="${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
+          OSPREFIX="${{ inputs.os }}"; [ "$OSPREFIX" = windows ] && OSPREFIX=win
+          TAG="${OSPREFIX}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
           case "${{ inputs.os }}" in
             linux) ./scripts/linux/analyze.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
             macos) ./scripts/macos/analyze.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
