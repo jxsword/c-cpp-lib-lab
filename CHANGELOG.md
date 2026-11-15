@@ -4,6 +4,8 @@
 
 ## v1.0.0 (in progress)
 
+- F-09-07 · 打包脚本：新增 `scripts/{linux,macos,windows}/bundle.*`——Linux 实测全绿（`$ORIGIN/../lib` + 自带 so + patchelf rpath 收紧 + strip + `readelf -d` 静态复核（自带库 realpath/系统库不打/无 Debug 副本）+ LICENSE/NOTICE 随包 + 切 CWD 自测）；macOS（.app + install_name_tool/codesign）与 Windows（平铺 DLL + dumpbin 复核 + 排除 *d.dll）脚本就绪待 runner；`calctool --bundle` 保持桩（打包由 bundle 脚本承担）。
+
 - F-09-06 · `all.yml` 全量 80 组合编排（S5 收口）：10 条组合 workflow 全部补 `workflow_call` 触发器；新增 `all.yml`（workflow_dispatch → uses 12 条（10 组合 + analyze + run-output）→ `summary` job 汇总三组 24/32/24 结果、K6 缓存复用说明、`FAILED_GROUPS` 失败定位（A6 标红+给 group/os）、all-reports artifact）；全量 80 实跑与干净机 job 登记 R-09 批量执行（runner 时长 + 默认分支约束）。
 
 - F-09-05 · 静态分析与运行输出工作流（S7/S8）：新增 `analyze.yml`（独立 dispatch：重建 → 三层 SA → SA 矩阵入 Job Summary → artifact）与 `run-output.yml`（独立 dispatch：RV-1…RV-4 采集 → **程序实际输出进 $GITHUB_STEP_SUMMARY 代码块**（A4）→ artifact），互不依赖；`scripts/summarize_reports.sh` 生成 `reports/v1.0.0/SUMMARY.md` 80 组合行（24/32/24 分组）+ 六类跨平台差异标注表（默认导出/ordinal/CRT/Debug-Release/mangling/macOS 架构）；dispatch 实测登记 R-09 批量执行。

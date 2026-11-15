@@ -1,0 +1,28 @@
+# tests/assertions/F-09-07.yml — F-09-07 断言基线
+# A1/A2/A6 的 macOS/Windows 产物级实测待各 OS runner；本 yml 为本地可执行机器子集。
+card: F-09-07
+checks:
+  - id: A1-three-bundle-scripts
+    action: run
+    args: ls scripts/linux/bundle.sh scripts/macos/bundle.sh scripts/windows/bundle.ps1
+    expect: exit0
+  - id: A3-bundle-run-static-recheck
+    action: run
+    args: ./scripts/linux/bundle.sh linux_gcc_x64_Release shared native
+    expect: exit0
+  - id: A3b-bundle-rpath-verified
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq set-rpath scripts/linux/bundle.sh
+    expect: exit0
+  - id: A4-no-debug-crt
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq d.dll scripts/windows/bundle.ps1
+    expect: exit0
+  - id: A5-license-notice
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq NOTICE scripts/linux/bundle.sh
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-09-07
+    expect: exit0
