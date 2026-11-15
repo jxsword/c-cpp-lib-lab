@@ -1,0 +1,45 @@
+# tests/assertions/F-04-04.yml — F-04-04 断言基线
+# 产物级断言（A1 三 OS 实跑 / A2 版本提取实测 / A3 VCRUNTIME 树）待 F-09-02 各 OS runner；
+# 本 yml 为本地可执行机器子集（schema 一致性 / 第二层工具接入 / symlink 判定 / A5 扫描）。
+card: F-04-04
+checks:
+  - id: A4-schema-root-fields-linux
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq compiler.*cfg reports/linux_gcc_x64_Release/deps/linux_gcc_x64_Release_shared.json
+    expect: exit0
+  - id: A4-schema-root-fields-macos-script
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq compiler.*cfg scripts/macos/deps_tree.sh
+    expect: exit0
+  - id: A4-schema-root-fields-windows-script
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq compiler = \$Compiler scripts/windows/deps_tree.ps1
+    expect: exit0
+  - id: A4b-symlink-junction-detect
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq LinkType scripts/windows/deps_tree.ps1
+    expect: exit0
+  - id: A3b-apiset-classification
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq api-set scripts/windows/deps_tree.ps1
+    expect: exit0
+  - id: A2-layer2-dylibbundler
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq dylibbundler scripts/macos/static_analyze.sh
+    expect: exit0
+  - id: A2b-layer2-dependencies-cli
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq Dependencies scripts/windows/static_analyze.ps1
+    expect: exit0
+  - id: A5-scan-clean-three-os
+    action: run
+    args: ./scripts/tools/scan_dynamic_calls.sh
+    expect: exit0
+  - id: brew-manifest-dylibbundler
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq dylibbundler .github/brew-packages.txt
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-04-04
+    expect: exit0

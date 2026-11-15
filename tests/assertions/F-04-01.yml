@@ -1,0 +1,38 @@
+# tests/assertions/F-04-01.yml — F-04-01 断言基线
+# 产物级断言（A1 构建/A2 otool 实测/A3 版本提取/A4 树分类/A5 lipo）需 macOS runner，
+# 自 F-09-02（native-macos.yml）起在 CI 实证；本 yml 为本地可执行的机器子集
+# （脚本结构断言 + A6 SKIP 逻辑实跑）。
+card: F-04-01
+checks:
+  - id: A1-scripts-complete
+    action: run
+    args: ls scripts/macos/env.sh scripts/macos/native.sh scripts/macos/make.sh scripts/macos/cmake.sh scripts/macos/build_all.sh scripts/macos/static_analyze.sh scripts/macos/deps_tree.sh scripts/macos/run.sh scripts/macos/bundle.sh
+    expect: exit0
+  - id: A2-dylib-install-name-rpath
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq install_name,@rpath/libvmath\.dylib scripts/macos/native.sh
+    expect: exit0
+  - id: A3-apple-clang-producer
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq apple-clang scripts/macos/static_analyze.sh
+    expect: exit0
+  - id: A4-shared-cache-classification
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq shared-cache scripts/macos/deps_tree.sh
+    expect: exit0
+  - id: A5-universal-lipo-tool
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq lipo -archs scripts/macos/static_analyze.sh
+    expect: exit0
+  - id: A6-x86-skip-exit0
+    action: run
+    args: ./scripts/macos/native.sh x86 Debug static
+    expect: exit0
+  - id: A6-skip-log-1015-reason
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq 10\.15 scripts/macos/native.sh
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-04-01
+    expect: exit0

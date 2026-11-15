@@ -426,11 +426,11 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [x] `F-02-05` · **运行输出采集 + 断言基线与验收入口（S8）**
 - [x] `F-03-01` · CMakeLists 与 CTest
 - [x] `F-03-02` · out-of-source / RPATH 断言与基线文档
-- [ ] `F-04-01` · macOS 原生与静态分析脚本（bash）
-- [ ] `F-04-02` · Windows 原生脚本（**bat + ps1**）与 18 组合
-- [ ] `F-04-03` · Windows 动态加载（按名 + ordinal，**属 RV**）
-- [ ] `F-04-04` · **静态分析三 OS 扩展（S7）**
-- [ ] `F-04-05` · 24 组合矩阵收口与约束记录
+- [x] `F-04-01` · macOS 原生与静态分析脚本（bash）
+- [x] `F-04-02` · Windows 原生脚本（**bat + ps1**）与 18 组合
+- [x] `F-04-03` · Windows 动态加载（按名 + ordinal，**属 RV**）
+- [x] `F-04-04` · **静态分析三 OS 扩展（S7）**
+- [x] `F-04-05` · 24 组合矩阵收口与约束记录
 - [ ] `F-05-01` · GNU make（14 组合）
 - [ ] `F-05-02` · **nmake 单独 makefile（10 组合，S9）**
 - [ ] `F-05-03` · MSBuild（8 组合）
@@ -460,7 +460,7 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [ ] `R-01` · 发布 `v0.1.0`
 - [x] `R-02` · 发布 `v0.2.0`
 - [x] `R-03` · 发布 `v0.3.0`（Gate A）
-- [ ] `R-04` · 发布 `v0.4.0`
+- [x] `R-04` · 发布 `v0.4.0`
 - [ ] `R-05` · 发布 `v0.5.0`
 - [ ] `R-06` · 发布 `v0.6.0`
 - [ ] `R-07` · 发布 `v0.7.0`

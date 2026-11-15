@@ -83,3 +83,47 @@
 - **RV-1…RV-4**（运行验证，非分析）：`--self-test` / `info` / `add`+`dot` / `--dynamic`——独立 `run.sh` 通道，与分析脚本文件、报告目录、CI step 均不同（P5 / C18 隔离）。
 - 导出集：动态库恰 6 API；gcc/MinGW 默认可见性下额外 `vmath_errno`（`-fvisibility=hidden` 下隐藏，如实记录）；`normalize_` 不在任何导出表（Release-O2 可能被内联消失，同样达成）。
 - x86 静态库的 `__x86.get_pc_thunk.*` 为编译器辅助符号，不计入导出集断言。
+
+## Windows 动态加载：`LOAD_LIBRARY_SEARCH_*` 加固对照（F-04-03）
+
+| 加载方式 | 行为 | 安全/加固对照 |
+|---|---|---|
+| `LoadLibraryA("vmath.dll")`（裸名） | 走 PE 搜索顺序（应用目录 → System32 → … → PATH） | **PATH 劫持面**：当前目录与 PATH 中的同名 DLL 可被劫持（历史 CVE 类别） |
+| `LoadLibraryExA(..., LOAD_LIBRARY_SEARCH_APPLICATION_DIR)` | 限定应用目录 | 收敛搜索面，消除 PATH 注入 |
+| `LOAD_LIBRARY_SEARCH_SYSTEM32` | 仅系统目录 | 最小信任面；依赖系统 DLL 时推荐 |
+| 本项目实现（`--dynamic` RV） | **绝对路径** `LoadLibraryA(<full path>)` | 与绝对路径等价：不触发搜索顺序，教学上先做「无加固的绝对路径」基线，加固开关留作 RV 变体 |
+| `GetDllImportSearchPath` / SafeDllSearchMode | 注册表/系统默认 | SafeDllSearchMode（XP SP2+ 默认开）已把当前目录后置；但仍晚于应用目录 |
+
+结论：教学基线用绝对路径（无搜索歧义）；加固变体（`LOAD_LIBRARY_SEARCH_APPLICATION_DIR \| LOAD_LIBRARY_SEARCH_SYSTEM32`）登记为 RV 附加演示（M9 安全演示 F-09-08 补）。
+
+## 5.5.1 24 组合工具链映射表（F-04-05 收口；封闭列表）
+
+| # | OS | 工具链 | 叇数/变体 | 32/64 开关 | 动态库命令 | 导入库 | CRT/运行库 |
+|---|---|---|---|---|---|---|---|
+| 1–4 | Linux | gcc | x86 / x64 | `-m32`（gcc-multilib）/ `-m64` | `-shared -Wl,-soname,libvmath.so.1 -Wl,--enable-new-dtags` | `libvmath.so`（无导入库概念） | glibc（动态） |
+| 5–12 | Windows | msvc | x86_MD/MT、x64_MD/MT | `/MACHINE:X86`/`X64`（vcvarsall x86/x64） | `cl /LD … /link /DEF:def\vmath.def` | `vmath.lib` | `/MD`↔`/MDd`、`/MT`↔`/MTd`（cfg 联动） |
+| 13–20 | Windows | msys2（四环境独立，C8） | MINGW64/MINGW32/CLANG64/UCRT64 | 由 msystem 决定 | `-shared -Wl,--out-implib,libvmath.dll.a` | `libvmath.dll.a` | msvcrt / UCRT 由变体决定 |
+| 21–22 | Windows | clang-cl（P6：MSVC ABI） | x64 | `--target=x86_64-pc-windows-msvc` | 同 msvc（`/LD … /link /DEF:`） | `llvm-lib` 产 `.lib` | 同 msvc `/MD|/MT` |
+| 23–24 | macOS | apple clang | arm64（P7 主组合） | `-arch arm64` | `-dynamiclib -Wl,-install_name,@rpath/libvmath.dylib -fvisibility=hidden` | 无（Mach-O 无导入库） | libSystem.B.dylib（shared cache） |
+
+**SKIP / 附加架构覆盖边界**：
+
+- macOS **32 位（x86）**：客观不可实现（10.15 Catalina 秀除）→ 输入 `x86` 一律 SKIP + exit 0（不计数组）。
+- macOS **x86_64** 与 `lipo` universal：**附加不计数组**的架构覆盖验证（脚本就绪，CI runner 实证）。
+- Linux **clang**：用户明确移出矩阵 → 不计数组的本地可选验证。
+- Windows 18 + Linux 4 + macOS 2 = **24**；每组合内 static/shared 双形态（P3）→ 每组 48 产物目录。
+
+## 5 类高频跨平台坑（M4 收口记录）
+
+1. **调用约定修饰**：x86 COFF `__stdcall` 产生 `_foo@N`，与 `.def` 未修饰名不匹配 → 统一 `__cdecl`（5.1 ④）。
+2. **裸数据符号导出差异**：gcc/MinGW 默认导出 `vmath_errno`，MSVC 平台默认不导出、`.def` 列入即导出 → 教学对照核心，消费侧一律走 `vmath_last_error()`。
+3. **可见性与隐藏**：`-fvisibility=hidden` 使 gcc 侧恰 6 API（errno 隐藏）；MSVC 侧 `.def` 是唯一导出白名单（`WINDOWS_EXPORT_ALL_SYMBOLS OFF`）。
+4. **RPATH 机制差异**：ELF `RUNPATH $ORIGIN`、Mach-O `@rpath + install_name + LC_RPATH`、PE 无 RPATH（搜索顺序 + `.def`/导入库）——CMake 的 `CMAKE_BUILD_RPATH_USE_ORIGIN` 是 install 改写可靠性的前提（M3 实测）。
+5. **DLL 劫持面**：裸名 LoadLibrary 走搜索顺序可被 PATH 劫持 → 教学基线用绝对路径；`LOAD_LIBRARY_SEARCH_*` 加固对照见上节（F-04-03）。
+
+## 跨平台反例（tests/negative/，不进主绿路径）
+
+| 样本 | 平台 | 期望失败 |
+|---|---|---|
+| `static-with-dllimport/consumer.c` | ELF（模拟 PE `__imp_` 语义） | `__imp_vmath_add` 未解析 |
+| `pe-def-missing/consumer.c` | PE | 静态库消费侧误开 dllimport：`__imp_` 未解析（MSVC LNK2019 同型） |
