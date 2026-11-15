@@ -12,7 +12,7 @@ checks:
     expect: regex:add\(1\.5,2\.5\) = 4
   - id: A2-unmangled-reference
     action: script
-    args: ./scripts/tools/assert_tree.sh grepeq U.vmath_add$ /tmp/vc-stage2-calcxx
+    args: ./scripts/tools/assert_tree.sh nmsymref /tmp/vc-stage2-calcxx vmath_add
     expect: exit0
   - id: A4-readme-reuse-no-rebuild
     action: script
