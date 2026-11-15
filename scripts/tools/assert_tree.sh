@@ -80,6 +80,16 @@ case "$cmd" in
         n=$(find "$1" -name "$2" 2>/dev/null | wc -l)
         [ "$n" -eq "$3" ]
         ;;
+    # makevar <名> <值> —— Makefile 的 ?= 变量默认值断言
+    makevar)
+        grep -qE "^$1[[:space:]]*\?= $2" Makefile
+        ;;
+    # makenovis <workdir> <srcdir> <variant> <cfg> —— make -n 静态干跑不含可见性旗标
+    makenovis)
+        w="$1"; s="$2"; v="$3"; c="$4"
+        n=$(cd "$w" && make -n -f "$s/Makefile" srcdir="$s" VARIANT="$v" CFG="$c" KIND=static 2>/dev/null | grep -cE 'fPIC|fvisibility')
+        [ "$n" -eq 0 ]
+        ;;
     # rpath <elf> <子串> —— RUNPATH 值含该子串
     rpath)
         readelf -d "$1" 2>/dev/null | grep RUNPATH | grep -q "$2"

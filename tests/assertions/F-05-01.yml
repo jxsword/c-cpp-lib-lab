@@ -12,9 +12,9 @@ checks:
     args: ./scripts/tools/assert_tree.sh selftest build/make/gnu/linux_gcc_x64_Release/shared/calctool
     expect: exit0
   - id: A2-static-no-vis-flags
-    action: run
-    args: bash -c 'cd build/make/gnu/linux_gcc_x64_Debug/static && make -n -f /home/ssy/proj/c-cpp-lib-lab/Makefile srcdir=/home/ssy/proj/c-cpp-lib-lab VARIANT=x64 CFG=Debug KIND=static | grep -c "fPIC\|fvisibility"'
-    expect: regex:^0$
+    action: script
+    args: ./scripts/tools/assert_tree.sh makenovis build/make/gnu/linux_gcc_x64_Debug/static /home/ssy/proj/c-cpp-lib-lab x64 Debug
+    expect: exit0
   - id: A3-analyze-report-made
     action: exists
     args: reports/linux_gcc_x64_Release/make/gnu/linux_gcc_x64_Release_shared.md
@@ -25,7 +25,7 @@ checks:
     expect: exit0
   - id: make-posix-vars
     action: script
-    args: ./scripts/tools/assert_tree.sh grepeq '^OS      \?= linux' Makefile
+    args: ./scripts/tools/assert_tree.sh makevar OS linux
     expect: exit0
   - id: D6-checklist-checked
     action: script
