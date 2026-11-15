@@ -442,7 +442,7 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [x] `F-07-03` · `std::vector` 跨边界用例
 - [x] `F-08-01` · `Vector` 类
 - [x] `F-08-02` · `Statistics` 类与 3 源 / 2 头
-- [ ] `F-08-03` · `extern "C"` 门面与纯虚接口
+- [x] `F-08-03` · `extern "C"` 门面与纯虚接口
 - [ ] `F-08-04` · 反例：STL 跨 CRT 与 ABI 面膨胀
 - [ ] `F-09-01` · **可复用环境/组合工作流与全量缓存（S1 / S5）**
 - [ ] `F-09-02` · **Group N：原生组 3 条工作流（24 组合）**
