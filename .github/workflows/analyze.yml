@@ -1,0 +1,57 @@
+# analyze.yml —— 独立 dispatch：三层静态分析（F-09-05；S7；与 run-output 互不依赖，A1）
+# 对指定 os/group/tag/kind 的组合：重建 → 三层 SA → SA-1..SA-10 结论 + 依赖树 JSON/MD。
+# scan_dynamic_calls.sh 在 step 中执行且零命中（A6）。
+name: analyze
+
+on:
+  workflow_dispatch:
+    inputs:
+      os: { description: 'linux|macos|windows', default: 'linux' }
+      group: { description: 'native|cmake|make/gnu', default: 'native' }
+      tag: { description: '组合标签（如 linux_gcc_x64_Release）', default: 'linux_gcc_x64_Release' }
+      kind: { description: 'static|shared', default: 'shared' }
+
+jobs:
+  analyze:
+    runs-on: ${{ inputs.os == 'linux' && 'ubuntu-latest' || inputs.os == 'macos' && 'macos-14' || 'windows-latest' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build target combo (self-contained; analysis never runs the target)
+        shell: bash
+        run: |
+          TAG="${{ inputs.tag }}"
+          VARIANT="${TAG##*_}"; REST="${TAG%_*}"; CFG="${REST##*_}"
+          case "${{ inputs.os }}/${{ inputs.group }}" in
+            linux/native)  ARCH="${TAG##*_}"; ./scripts/linux/native.sh "$ARCH" "$CFG" "${{ inputs.kind }}" ;;
+            linux/cmake)   ARCH="${TAG##*_}"; ./scripts/linux/cmake.sh "$ARCH" "$CFG" "${{ inputs.kind }}" ;;
+            linux/make/gnu) VARIANT2=$(echo "$TAG" | cut -d_ -f4); ./scripts/linux/native.sh "$VARIANT2" "$CFG" "${{ inputs.kind }}" ;;
+            *) echo "SKIP: ${{ inputs.os }}/${{ inputs.group }} handled by its runner workflow"; exit 0 ;;
+          esac
+      - name: SA three-layer static analysis
+        id: sa
+        if: always()
+        shell: bash
+        run: |
+          TAG="${{ inputs.tag }}"
+          case "${{ inputs.os }}" in
+            linux) ./scripts/linux/analyze.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
+            macos) ./scripts/macos/analyze.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
+            windows) pwsh -File scripts/windows/static_analyze.ps1 -Tag "$TAG" -Kind "${{ inputs.kind }}" -Group "${{ inputs.group }}" ;;
+          esac
+      - name: 5.8.4 scan (zero-hit required)
+        if: always()
+        shell: bash
+        run: ./scripts/tools/scan_dynamic_calls.sh
+      - name: SA report to job summary
+        if: always()
+        shell: bash
+        run: |
+          F="reports/${{ inputs.tag }}/${{ inputs.group }}/${{ inputs.tag }}_${{ inputs.kind }}.md"
+          { echo '## SA 结论矩阵 · ${{ inputs.tag }} / ${{ inputs.kind }}'; echo; cat "$F" 2>/dev/null || echo '(report not generated on this runner)'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload SA reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sa-${{ inputs.os }}-${{ inputs.group }}-${{ inputs.tag }}-${{ inputs.kind }}
+          path: reports/
+          if-no-files-found: ignore

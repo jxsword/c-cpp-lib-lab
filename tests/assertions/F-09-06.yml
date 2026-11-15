@@ -1,0 +1,41 @@
+# tests/assertions/F-09-06.yml — F-09-06 断言基线
+# A2 全量 80 实跑 / A5 干净机 job：登记 R-09 批量执行（默认分支硬约束 + runner 时长）；
+# 本 yml 为本地可执行机器子集（A1 12 条引用 / A3 口径 / A6 失败定位结构）。
+card: F-09-06
+checks:
+  - id: A1-all-yml-12-references
+    action: script
+    args: ./scripts/tools/assert_tree.sh countmatch uses:[[:space:]].*workflows/ .github/workflows/all.yml 12
+    expect: exit0
+  - id: A1b-all-combos-have-call
+    action: script
+    args: ./scripts/tools/assert_tree.sh globgrep .github/workflows/native-*.yml workflow_call
+    expect: exit0
+  - id: A1b2-make-have-call
+    action: script
+    args: ./scripts/tools/assert_tree.sh globgrep .github/workflows/make-*.yml workflow_call
+    expect: exit0
+  - id: A1b3-msbuild-cmake-have-call
+    action: script
+    args: ./scripts/tools/assert_tree.sh globgrep .github/workflows/msbuild-windows.yml workflow_call
+    expect: exit0
+  - id: A1b4-cmake-have-call
+    action: script
+    args: ./scripts/tools/assert_tree.sh globgrep .github/workflows/cmake-*.yml workflow_call
+    expect: exit0
+  - id: A3-summary-80-reference
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq 24 + 32 + 24 = 80 .github/workflows/all.yml
+    expect: exit0
+  - id: A6-failure-localization
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq FAILED_GROUPS .github/workflows/all.yml
+    expect: exit0
+  - id: A6b-fail-marker
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq exit 1 .github/workflows/all.yml
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-09-06
+    expect: exit0
