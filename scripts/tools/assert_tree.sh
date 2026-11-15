@@ -96,6 +96,10 @@ case "$cmd" in
         n=$(cd "$w" && make -n -f "$s/Makefile" srcdir="$s" VARIANT="$v" CFG="$c" KIND=static 2>/dev/null | grep -cE 'fPIC|fvisibility')
         [ "$n" -eq 0 ]
         ;;
+    # nmsymref <elf> <符号> —— 未定义引用判定（nm 的 U 行；卡 A2 未修饰名证据）
+    nmsymref)
+        nm "$1" 2>/dev/null | grep -qE " U $2\$"
+        ;;
     # xmlvalid <file> —— XML 可解析（python minidom）
     xmlvalid)
         python3 -c "import xml.dom.minidom, sys; xml.dom.minidom.parse(sys.argv[1])" "$1"
