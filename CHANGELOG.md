@@ -2,6 +2,13 @@
 
 本文件记录 c-cpp-lib-lab 的所有显著变更。每个里程碑发布对应一个 `v<semver>` 附注 tag（落在 `main`），版本语义见 CONTRIBUTING.md「版本与 tag 策略」一节。
 
+## v0.6.0 (2026-11-16)
+
+M6 里程碑发布：③ CMake 三 OS 24 组合口径收口（msvc/clang-cl 强制 Ninja，S9）——**80 组合构建矩阵三 OS 口径全部就绪**（native 24 + make 32 + cmake 24）；CTest 三类四项用例（每组合 ≥3）；RPATH 两阶段断言汇总（`reports/v0.6.0/SUMMARY.md`）。Linux 16 组合形态实跑全绿；mac/win 产物级实证按口径委托 F-09-02。下一里程碑进入 C++ 语言演进（M7 阶段 2）。
+
+- F-06-01 · CMake 三 OS 24 组合：新增 `scripts/linux/cmake.sh`（Linux 4 组合驱动）；`CMakeLists.txt` 补 `CMAKE_MSVC_RUNTIME_LIBRARY` 默认值（CMP0091 NEW，命令行按 variant 的 _MD/_MT 注入 MultiThreadedDLL/MultiThreaded）；macOS（`-DCMAKE_OSX_ARCHITECTURES`、32 位 SKIP）与 Windows（msvc/clang-cl 强制 `-G Ninja`，S9）入口已于 F-04-01/02 就绪；Linux 8 形态实跑全绿；全 24 组合与 msvc Ninja CMakeCache 断言待 F-09-02 runner。
+- F-06-02 · CTest 三 OS 与 out-of-source 断言：`tests/CMakeLists.txt` 注册三类四项用例（self-test / probe-deps 依赖判定 / info-fields 组合自证，shared 增 dynamic-load 属 RV 通道）；Linux 实测 static 3/3、shared 4/4 全绿（每组合 ≥3 ✓）；`reports/v0.6.0/SUMMARY.md` 三组口径（24/32/24 = 80）与 RPATH 两阶段断言汇总。
+
 ## v0.5.0 (2026-11-16)
 
 M5 里程碑发布：② make 组 32 组合三方言全就绪——GNU make（`Makefile`，Linux 8 形态实跑全绿）、nmake（`Makefile.nmake` CRLF 独立文件）、MSBuild（`vmath.vcxproj`）；`verify_make32.{sh,ps1}` parity 口径核验（14+10+8=32、/MD //MT 为 variant 字段、注入差异表落档）。macOS/msys2/nmake/MSBuild 产物级实证委托 F-09-02 runner（口径如实分列，见 `reports/v0.5.0/SUMMARY.md`）。下一里程碑 CMake 三 OS（M6，Gate B 收口）。

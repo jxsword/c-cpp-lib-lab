@@ -435,8 +435,8 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [x] `F-05-02` · **nmake 单独 makefile（10 组合，S9）**
 - [x] `F-05-03` · MSBuild（8 组合）
 - [x] `F-05-04` · 32 组合横向对比
-- [ ] `F-06-01` · CMake 三 OS 24 组合
-- [ ] `F-06-02` · CTest 三 OS 与 out-of-source 断言
+- [x] `F-06-01` · CMake 三 OS 24 组合
+- [x] `F-06-02` · CTest 三 OS 与 out-of-source 断言
 - [ ] `F-07-01` · C++ 主程序
 - [ ] `F-07-02` · 反例：去掉 `extern "C"`
 - [ ] `F-07-03` · `std::vector` 跨边界用例
@@ -462,7 +462,7 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [x] `R-03` · 发布 `v0.3.0`（Gate A）
 - [x] `R-04` · 发布 `v0.4.0`
 - [x] `R-05` · 发布 `v0.5.0`
-- [ ] `R-06` · 发布 `v0.6.0`
+- [x] `R-06` · 发布 `v0.6.0`
 - [ ] `R-07` · 发布 `v0.7.0`
 - [ ] `R-08` · 发布 `v0.8.0`（Gate B）
 - [ ] `R-09` · 发布 `v1.0.0`（Gate C）

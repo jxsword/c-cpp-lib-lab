@@ -1,0 +1,29 @@
+# tests/assertions/F-06-02.yml — F-06-02 断言基线
+# A1 全 24 组合 CTest：Linux 8 形态实跑 + mac/win 待 F-09-02 runner；
+# 本 yml 为本地可执行机器子集。
+card: F-06-02
+checks:
+  - id: A2-static-3-tests
+    action: run
+    args: ctest --test-dir build/cmake/linux_gcc_x64_Release/static
+    expect: exit0
+  - id: A2b-shared-4-tests
+    action: run
+    args: ctest --test-dir build/cmake/linux_gcc_x64_Release/shared
+    expect: exit0
+  - id: A2c-dynamic-registered
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq dynamic-load tests/CMakeLists.txt
+    expect: exit0
+  - id: A3-rpath-assertions-live
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq BUILD_RPATH CMakeLists.txt
+    expect: exit0
+  - id: A4-summary-three-groups
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq 24 / 32 / 24 reports/v0.6.0/SUMMARY.md
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-06-02
+    expect: exit0

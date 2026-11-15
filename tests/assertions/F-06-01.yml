@@ -1,0 +1,33 @@
+# tests/assertions/F-06-01.yml — F-06-01 断言基线
+# A1 全 24 组合 / A2 Ninja CMakeCache / A3 x86 32 位：Linux 8 形态实跑 + mac/msvc 待 F-09-02 runner；
+# 本 yml 为本地可执行机器子集。
+card: F-06-01
+checks:
+  - id: A1-linux-8-forms
+    action: script
+    args: ./scripts/tools/assert_tree.sh count build/cmake calctool 8
+    expect: exit0
+  - id: A1b-representative-ctest
+    action: run
+    args: ctest --test-dir build/cmake/linux_gcc_x64_Release/shared
+    expect: exit0
+  - id: A2-ninja-forced-in-cmake-ps1
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq -G Ninja scripts/windows/cmake.ps1
+    expect: exit0
+  - id: A5-runtime-library-linkage
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq CMAKE_MSVC_RUNTIME_LIBRARY CMakeLists.txt
+    expect: exit0
+  - id: A4-macos-32bit-skip
+    action: run
+    args: ./scripts/macos/cmake.sh x86 Debug shared
+    expect: exit0
+  - id: A6-src-tree-clean
+    action: script
+    args: ./scripts/tools/assert_tree.sh srcnoartifacts .
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-06-01
+    expect: exit0
