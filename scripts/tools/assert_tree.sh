@@ -96,6 +96,10 @@ case "$cmd" in
         n=$(cd "$w" && make -n -f "$s/Makefile" srcdir="$s" VARIANT="$v" CFG="$c" KIND=static 2>/dev/null | grep -cE 'fPIC|fvisibility')
         [ "$n" -eq 0 ]
         ;;
+    # xmlvalid <file> —— XML 可解析（python minidom）
+    xmlvalid)
+        python3 -c "import xml.dom.minidom, sys; xml.dom.minidom.parse(sys.argv[1])" "$1"
+        ;;
     # rpath <elf> <子串> —— RUNPATH 值含该子串
     rpath)
         readelf -d "$1" 2>/dev/null | grep RUNPATH | grep -q "$2"
