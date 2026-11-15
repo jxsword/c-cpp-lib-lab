@@ -4,6 +4,8 @@
 
 ## v0.5.0 (in progress)
 
+- F-05-02 · nmake 单独 makefile（10 组合，S9）：新增 `Makefile.nmake`（**独立于 GNU Makefile 的 CRLF 无 BOM 文件**；`!IF/!ELSE/!ENDIF` 条件、`/MD`↔`/MDd` `/MT`↔`/MTd` 随 CFG 联动、`/DEF:$(SRCDIR)\def\vmath.def` 仅动态、`/MACHINE` 随变体、`SRCDIR/OUTDIR` 强制 out-of-source、`selftest/analyze` 目标）并完整化 `scripts/windows/nmake.{bat,ps1}`（vcvars 缺失时 NOTE 降级）；10 组合（msvc 8 + clang-cl 2）产物级实测待 F-09-02 windows runner。
+
 - F-05-01 · GNU make（14 组合）：新增 `Makefile`（`?=` 变量 OS/TOOLSET/VARIANT/CFG/KIND/CC、`srcdir`/`outdir` 强制 out-of-source、`VIS` 仅 shared、`DEF_LIB/DEF_APP` 按 KIND 分派、动态库名按 OS 分派 `libvmath.so`/`libvmath.dylib`/`vmath.dll`、`selftest`/`analyze` 目标、msys2 加 `--out-implib`）；Linux 4 组合 × 2 形态 8/8 selftest 绿（A2 `make -n` 静态零 hidden/PIC；A3 `make analyze` 产报告；`-Wl,-rpath,'$$ORIGIN'`）；macOS gmake / msys2 GNU make 待 F-09-02 runner。
 
 ## v0.4.0 (2026-11-16)
