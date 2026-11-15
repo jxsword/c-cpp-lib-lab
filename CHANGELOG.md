@@ -4,6 +4,8 @@
 
 ## v0.5.0 (in progress)
 
+- F-05-04 · 32 组合横向对比：新增 `scripts/verify_make32.{sh,ps1}`（32 行唯一标签清单、三方言 14/10/8 口径核验、/MD //MT 为 variant 字段（16 行携带 + clang-cl 参数承载）、Linux gnu info↔标签 8/8 实跑核对）与 `reports/v0.5.0/SUMMARY.md`（三方言注入差异记录表）；不改 5.5 定义。
+
 - F-05-03 · MSBuild（8 组合）：新增 `vmath.vcxproj`（4 配置 Debug/Release × Win32/x64、`PlatformToolset v143`、`ConfigurationType` 与 `RuntimeLibrary` 命令行 `/p:` 注入（DynamicLibrary/StaticLibrary ↔ CALC_BUILD_DLL/CALC_STATIC 形态宏、MultiThreadedDLL/MultiThreaded ↔ /MD//MT）、`ModuleDefinitionFile` 条件挂载仅动态、`OutDir/IntDir` 默认即 `build\make\msbuild\` 强制 out-of-source）并完整化 `scripts/windows/msbuild.{bat,ps1}`（Kind→ConfigurationType、Variant→RuntimeLibrary 映射）；8 组合产物级实测待 F-09-02 windows runner。
 
 - F-05-02 · nmake 单独 makefile（10 组合，S9）：新增 `Makefile.nmake`（**独立于 GNU Makefile 的 CRLF 无 BOM 文件**；`!IF/!ELSE/!ENDIF` 条件、`/MD`↔`/MDd` `/MT`↔`/MTd` 随 CFG 联动、`/DEF:$(SRCDIR)\def\vmath.def` 仅动态、`/MACHINE` 随变体、`SRCDIR/OUTDIR` 强制 out-of-source、`selftest/analyze` 目标）并完整化 `scripts/windows/nmake.{bat,ps1}`（vcvars 缺失时 NOTE 降级）；10 组合（msvc 8 + clang-cl 2）产物级实测待 F-09-02 windows runner。
