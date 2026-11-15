@@ -1,0 +1,138 @@
+# PR 门禁（F-00-02）：只做文本级检查 —— 不编译、不跑矩阵（2.6 / F-00-02 要点）
+# 检查项：行尾空白、UTF-8、*.ps1 UTF-8 BOM、*.bat CRLF 且无 BOM、*.sh LF 且无 BOM、
+#         禁止二进制入库、5.8.4 禁用调用关键字扫描、docs/PLAN.md 卡号格式、
+#         全文无越界章节引用（Z1）、scripts/ 内无 gh 调用（J7 / K22）
+name: lint
+
+on:
+  pull_request:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: text / encoding / ban lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 1. 行尾空白 / UTF-8 / ps1·bat·sh 编码与换行 ──────────────────────────
+      # 文本文件（非 ps1/bat/cmd）一律 LF（对齐 .gitattributes 意图，F-00-04 补全编码段）
+      - name: Text files (trailing whitespace, UTF-8, BOM/EOL rules)
+        shell: bash
+        run: |
+          set -euo pipefail
+          BOM=$'\xef\xbb\xbf'
+          viol=0
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            case "$f" in
+              *.ps1)          t=ps1 ;;
+              *.bat|*.cmd)    t=bat ;;
+              *.sh)           t=sh  ;;
+              *)              t=txt ;;
+            esac
+            # 二进制文件交给第 2 步处置，这里跳过其文本属性检查
+            if [ -s "$f" ] && [ "$(file --mime-encoding -b "$f")" = binary ]; then continue; fi
+            cr=$(tr -dc '\r' < "$f" | wc -c)
+            lf=$(tr -dc '\n' < "$f" | wc -c)
+            case "$t" in
+              ps1)
+                [ "$(head -c 3 "$f")" = "$BOM" ] || { echo "FAIL(ps1 需 UTF-8 BOM): $f"; viol=1; } ;;
+              bat)
+                [ "$(head -c 3 "$f")" != "$BOM" ] || { echo "FAIL(bat 禁 BOM): $f"; viol=1; }
+                [ "$cr" -eq "$lf" ] || { echo "FAIL(bat 需 CRLF 且无裸 LF): $f (CR=$cr LF=$lf)"; viol=1; } ;;
+              sh)
+                [ "$(head -c 3 "$f")" != "$BOM" ] || { echo "FAIL(sh 禁 BOM): $f"; viol=1; }
+                [ "$cr" -eq 0 ] || { echo "FAIL(sh 需 LF): $f (CR=$cr)"; viol=1; } ;;
+              txt)
+                if [ -s "$f" ]; then
+                  [ "$cr" -eq 0 ] || { echo "FAIL(文本需 LF): $f (CR=$cr)"; viol=1; }
+                  tr -d '\r' < "$f" | grep -qE '[[:blank:]]+$' && { echo "FAIL(行尾空白): $f"; viol=1; } || true
+                  iconv -f UTF-8 -t UTF-8 "$f" >/dev/null 2>&1 || { echo "FAIL(非 UTF-8): $f"; viol=1; }
+                fi ;;
+            esac
+          done < <(git ls-files)
+          [ "$viol" -eq 0 ] || exit 1
+          echo 'OK: 行尾空白 / UTF-8 / BOM 与换行规则全部通过'
+
+      # ── 2. 禁止二进制入库 / 禁止跟踪 .gitignore 命中的路径 ────────────────────
+      - name: Binaries and ignored tracked files
+        shell: bash
+        run: |
+          set -euo pipefail
+          viol=0
+          for f in $(git ls-files); do
+            if [ -s "$f" ] && [ "$(file --mime-encoding -b "$f")" = binary ]; then
+              echo "FAIL(二进制入库): $f"; viol=1
+            fi
+            if git check-ignore -q "$f"; then
+              echo "FAIL(命中 .gitignore 却已跟踪): $f"; viol=1
+            fi
+          done
+          [ "$viol" -eq 0 ] || exit 1
+          echo 'OK: 无二进制入库、无跟踪被忽略路径'
+
+      # ── 3. 5.8.4 静态分析硬禁令关键字扫描（scope: scripts/，K22/A5 同口径） ────
+      # 允许在注释行以 FORBIDDEN: 前缀引用关键字（5.8.4 白名单机制）。
+      # ProcMon "Load Image" 等图形工具操作不可文本扫描，由 F-00-04 的
+      # scan_dynamic_calls.sh 按其清单执行。
+      - name: 5.8.4 banned calls in scripts/
+        shell: bash
+        run: |
+          set -euo pipefail
+          PAT='\b(dlopen|dlsym|dlclose|LoadLibrary|LoadLibraryEx|GetProcAddress|FreeLibrary|NSBundle|CFBundle|ldd|pldd|vmmap|LD_DEBUG|LD_PRELOAD|LD_TRACE_LOADED_OBJECTS|DYLD_PRINT_LIBRARIES|DYLD_PRINT_RPATHS|DYLD_INSERT_LIBRARIES)\b|/proc/[0-9]+/maps'
+          hits=$(grep -rnE "$PAT" scripts/ 2>/dev/null | grep -v 'FORBIDDEN:' || true)
+          if [ -n "$hits" ]; then
+            echo "$hits"
+            exit 1
+          fi
+          echo 'OK: scripts/ 无 5.8.4 禁用调用'
+
+      # ── 4. docs/PLAN.md 卡号格式 + Z1 全文无越界章节引用 ──────────────────────
+      - name: PLAN card-id format and Z1 in-bounds references
+        shell: bash
+        run: |
+          set -euo pipefail
+          plan=docs/PLAN.md
+          # (a) 3.1 勾选清单卡号格式：F-<里程碑2位>-<序号2位> / R-<里程碑2位>
+          bad=$(sed -n '/^### 3.1/,/^---/p' "$plan" | grep -E '^- \[' | grep -vE '^- \[[ x]\] `(F-[0-9]{2}-[0-9]{2}|R-[0-9]{2})`' || true)
+          if [ -n "$bad" ]; then
+            echo "FAIL(卡号格式): $bad"; exit 1
+          fi
+          echo 'OK: 3.1 卡号格式合规'
+          # (b) Z1：所有「见 X.X」形引用必须落在本计划自有章节集合内
+          #     章节集合 = 各级标题首个 token；附录按「12.X → X」映射（### A. … ### H.）
+          tr -d '\140' < "$plan" | grep -oE '见 *[0-9]+\.[0-9A-Za-z]+(\.[0-9]+)?' | sed 's/见 *//' | sort -u > /tmp/z1_refs.txt
+          grep -E '^#{1,6} ' "$plan" | awk '{tok=$2; gsub(/\.$/,"",tok); print tok}' | sort -u > /tmp/z1_secs.txt
+          ok=1
+          while IFS= read -r r; do
+            case "$r" in
+              12.*) alt="${r#12.}" ;;
+              *)    alt="$r" ;;
+            esac
+            if grep -qx -e "$r" -e "$alt" /tmp/z1_secs.txt; then continue; fi
+            head="$r"; found=0
+            while [[ "$head" == *.* ]]; do
+              head="${head%.*}"
+              if grep -qx -e "$head" -e "${head#12.}" /tmp/z1_secs.txt; then found=1; break; fi
+            done
+            if [ "$found" -ne 1 ]; then echo "FAIL(Z1 越界章节引用): 见 $r"; ok=0; fi
+          done < /tmp/z1_refs.txt
+          [ "$ok" -eq 1 ] || exit 1
+          echo "OK: $(wc -l < /tmp/z1_refs.txt) 处见形引用全部命中本计划章节集合"
+
+      # ── 5. scripts/ 内禁止 gh 调用（9.4 J7 / 12.K22：辅助脚本须离线可跑） ─────
+      - name: No gh calls in scripts/
+        shell: bash
+        run: |
+          set -euo pipefail
+          hits=$(grep -rInw 'gh' scripts/ 2>/dev/null || true)
+          if [ -n "$hits" ]; then
+            echo "$hits"
+            exit 1
+          fi
+          echo 'OK: scripts/ 无 gh 调用'
