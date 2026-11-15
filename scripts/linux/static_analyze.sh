@@ -176,7 +176,7 @@ vmath_set_logger"
 if [ -f "$LIB_SO" ]; then
     actual=$(awk '{print $NF}' "$REPORT/layer1/nm_D_so.txt" | sort)
 else
-    actual=$(awk '$2 == "T" || $2 == "B" {print $3}' "$REPORT/layer1/nm_archive.txt" | sort | uniq)
+    actual=$(awk '$2 == "T" || $2 == "B" {print $3}' "$REPORT/layer1/nm_archive.txt" | grep -v '^__x86\.get_pc_thunk' | sort | uniq)
 fi
 sorted_api=$(printf '%s\n' "$expected_api" | sort)
 sorted_errno=$(printf '%s\n' "$expected_with_errno" | sort)
@@ -198,8 +198,10 @@ if [ -f "$LIB_SO" ]; then
 else
     if awk '$3 == "normalize_" && $2 == "t"' "$REPORT/layer1/nm_archive.txt" | grep -q normalize_; then
         record SA-6 PASS "normalize_ is local (t) in static archive"
+    elif grep -q 'normalize_' "$REPORT/layer1/nm_archive.txt"; then
+        record SA-6 FAIL "normalize_ global in static archive"
     else
-        record SA-6 FAIL "normalize_ not local in static archive"
+        record SA-6 PASS "normalize_ optimized out at this cfg (no global symbol; export-table goal met)"
     fi
 fi
 

@@ -6,6 +6,10 @@
 
 M0 里程碑发布：仓库骨架与 git flow（main/develop 受保护、SSH origin）、lint 门禁、CI 缓存基础设施（S1）、编码/换行规范与静态分析禁令基线（S6/S7，D9/D10 生效）全部就绪；`docs/PLAN.md`（v1.3.2）为唯一权威计划。Gate A 前置达成，下一里程碑进入纯 C 源码（M1）。
 
+## v0.2.0 (2026-11-16)
+
+M2 里程碑发布：① 原生 Linux 4 组合 × 2 形态 8 个组合形态全绿（out-of-source、compile.log 记录、ELF32/64 实证）；三层静态分析框架（SA-1…SA-10）+ BFS 依赖树（readlink -f realpath 去重 + 符号链接链）+ RV-1…RV-4 运行输出通道（P5 隔离）；`scripts/verify_card.sh` 成为 D1 唯一断言入口（15 卡机器可执行基线，受限指令集设计）；`reports/v0.2.0/SUMMARY.md` 汇总。Gate A 推进中，下一里程碑 CMake（M3，Gate A 完成）。
+
 ## v0.1.0 (2026-11-15)
 
 M1 里程碑发布：纯 C 四模式（静态/建库/用库/直编）在 Linux gcc x64 单平台全绿；6 API 固定 ordinal 导出集与 5.2 断言一致；`reports/v0.1.0/SUMMARY.md` 完成 SA-1…SA-6 静态分析摘要（其余 N/A）。Gate A 推进中，下一里程碑进入原生 Linux 组合与静态分析框架（M2）。

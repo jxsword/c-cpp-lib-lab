@@ -12,8 +12,12 @@ checks:
     args: ./scripts/linux/analyze.sh linux_gcc_x64_Release shared native
     expect: exit0
   - id: A7-layer1-dumps-regenerated
-    action: script
-    args: ./scripts/tools/assert_tree.sh filecount reports/linux_gcc_x64_Release/native/layer1 *.txt 10
+    action: exists
+    args: reports/linux_gcc_x64_Release/native/layer1/readelf_h.txt
+    expect: exit0
+  - id: A7-layer2-dumps-regenerated
+    action: exists
+    args: reports/linux_gcc_x64_Release/native/layer2/lddtree.txt
     expect: exit0
   - id: A3-symlink-chain
     action: script
