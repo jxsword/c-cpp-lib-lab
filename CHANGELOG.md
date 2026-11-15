@@ -4,6 +4,8 @@
 
 ## v1.0.0 (in progress)
 
+- F-09-02 · Group N 原生组 3 条工作流（24 组合）：新增 `native-{linux,macos,windows}.yml`（各自 `workflow_dispatch` + inputs 过滤（缺省全量）、`fail-fast: false`、matrix include 展开 → `_combo.yml`、`group: native`）——Linux 4 + macOS 2 + Windows 18（msvc 8 + msys2 8 + clang-cl 2）脚本化核验 24 组合无重复；dispatch 实测（A2/A3/A4）登记 R-09 收尾批量执行（默认分支硬约束）。
+
 - F-09-01 · 可复用环境/组合工作流与全量缓存（S1/S5）：新增 `.github/workflows/_env.yml`（workflow_call 调 setup-env composite，输出 cache-hit）与 `_combo.yml`（workflow_call + workflow_dispatch；构建 → RV → SA → 禁令扫描 → 结论 Job Summary → artifact 五 step，RV/SA 分 step 隔离，仅 Release 上传 reports-* artifact；make 组与 windows 组由专属 workflow 承接）；A3 dispatch 双跑取证登记 R-09 收尾动作（workflow_dispatch 要求文件在默认分支的 GitHub 硬约束）。
 
 ## v0.8.0 (2026-11-16) · Gate B 达成
