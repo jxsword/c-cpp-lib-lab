@@ -4,6 +4,8 @@
 
 ## v1.0.0 (in progress)
 
+- F-09-08 · 安全演示：新增 `scripts/{linux,macos,windows}/security_hijack_demo.*`（RV 通道）——Linux **before/after 双模式实测**（before：LD_LIBRARY_PATH 前置同名库劫持面复现 + `LD_LIBRARY_PATH 优先于 RUNPATH` 静态对照结论；after：SHA256 库哈希校验 + `env -i` 干净环境自测（等价 AT_SECURE）+ rpath `$ORIGIN` 固定确认）；`docs/baseline.md` 安全章节（攻击面 6 项 + 防御清单 9 条 + AT_SECURE/SIP/Hardened Runtime 特权规则）；mac/win 演示要点版随 runner。
+
 - F-09-07 · 打包脚本：新增 `scripts/{linux,macos,windows}/bundle.*`——Linux 实测全绿（`$ORIGIN/../lib` + 自带 so + patchelf rpath 收紧 + strip + `readelf -d` 静态复核（自带库 realpath/系统库不打/无 Debug 副本）+ LICENSE/NOTICE 随包 + 切 CWD 自测）；macOS（.app + install_name_tool/codesign）与 Windows（平铺 DLL + dumpbin 复核 + 排除 *d.dll）脚本就绪待 runner；`calctool --bundle` 保持桩（打包由 bundle 脚本承担）。
 
 - F-09-06 · `all.yml` 全量 80 组合编排（S5 收口）：10 条组合 workflow 全部补 `workflow_call` 触发器；新增 `all.yml`（workflow_dispatch → uses 12 条（10 组合 + analyze + run-output）→ `summary` job 汇总三组 24/32/24 结果、K6 缓存复用说明、`FAILED_GROUPS` 失败定位（A6 标红+给 group/os）、all-reports artifact）；全量 80 实跑与干净机 job 登记 R-09 批量执行（runner 时长 + 默认分支约束）。
