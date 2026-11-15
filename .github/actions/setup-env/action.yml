@@ -166,9 +166,11 @@ runs:
         msystem: ${{ inputs.variant }}
         cache: true
         update: false
+        # 按 msystem 装对应工具链组（native.ps1 依赖 gcc/clang + ar 同目录）
         install: >-
           git
           make
+          ${{ format('mingw-w64-{0}-toolchain', fromJSON('{"MINGW64":"x86_64","MINGW32":"i686","UCRT64":"ucrt-x86_64","CLANG64":"clang-x86_64"}')[inputs.variant]) }}
 
     # ── 6/7 Windows: LLVM / Ninja / CMake / Dependencies CLI 工具缓存 ───────────
     - name: Restore Windows tools
