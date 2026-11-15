@@ -1,0 +1,24 @@
+# tests/assertions/F-07-03.yml — F-07-03 断言基线
+# A4 三 OS：Linux 实跑；mac/win 命令见 stage2/README.md，随 F-09-02 runner。
+card: F-07-03
+checks:
+  - id: A1-build-stage2
+    action: run
+    args: g++ -Wall -Wextra -Werror -Iinclude stage2/main.cpp -L/home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared -lvmath -Wl,-rpath,/home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared -o /tmp/vc-stage2-v
+    expect: exit0
+  - id: A1b-selftest-bit-exact
+    action: run
+    args: /tmp/vc-stage2-v --self-test
+    expect: regex:vector-data.bit-exact.OK
+  - id: A3-empty-vector-error-path
+    action: run
+    args: /tmp/vc-stage2-v --self-test
+    expect: regex:empty-vector.error.path.OK
+  - id: A2-no-mangled-in-lib
+    action: run
+    args: bash -c nm -D /home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared/libvmath.so
+    expect: exit:1
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-07-03
+    expect: exit0

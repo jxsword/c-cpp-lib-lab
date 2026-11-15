@@ -4,6 +4,8 @@
 
 ## v0.7.0 (in progress)
 
+- F-07-03 · `std::vector` 跨边界用例：`stage2/main.cpp` 增 `--self-test` 分派——`std::vector<double>::data()` 传入 `vmath_dot` 与纯 C 数组路径逐位一致（数据可传、类型不可跨）、空 vector 走 C 库错误分支（errno=VMATH_E_DIM 经访问器）而非 UB；C 库导出表 0 mangled 符号实测；三 OS 命令见 stage2/README.md（mac/win 随 runner）。
+
 - F-07-02 · 反例：去掉 `extern "C"`：新增 `tests/negative/stage2_no_extern_c.cpp`（C++ 风格重声明 → Itanium 修饰名 `_Z9vmath_adddd` 未定义引用）、`tests/negative/run.sh`（期望失败运行器：mangling 特征 nm 证明 + 链接失败 = 通过，日志归档 `reports/v0.7.0/negative/`）与 `tests/negative/README.md`（修复方式 = 恢复 extern "C" 守卫）；实测特征串双证（nm `U _Z9vmath_adddd` + ld `undefined reference`）。
 
 - F-07-01 · C++ 主程序：新增 `stage2/main.cpp`（`#include "vmath.h"` 直调 extern "C" 接口、异常边界防御示范）与 `stage2/README.md`（三 OS 构建命令 + 复用产物不重编库说明）；Linux 实测：链接运行正确（`add=4`/`dot=32`）、`nm -C` 引用为未修饰名 `U vmath_add`；mac/win 随 runner。
