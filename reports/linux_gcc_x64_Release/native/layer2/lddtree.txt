@@ -1,3 +1,0 @@
-/home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared/calctool (interpreter => /lib64/ld-linux-x86-64.so.2)
-    libvmath.so.1 => /home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared/libvmath.so.1
-    libc.so.6 => /usr/lib/x86_64-linux-gnu/libc.so.6

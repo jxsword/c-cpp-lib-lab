@@ -1,2 +1,0 @@
-/home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Debug/static/calctool (interpreter => /lib64/ld-linux-x86-64.so.2)
-    libc.so.6 => /usr/lib/x86_64-linux-gnu/libc.so.6
