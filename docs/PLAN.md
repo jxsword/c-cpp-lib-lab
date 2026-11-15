@@ -396,7 +396,7 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 
 **Feature 卡（44）**
 
-- [ ] `F-00-01` · 仓库与 git flow 初始化（含 SSH 关联与 gh 前置校验）
+- [x] `F-00-01` · 仓库与 git flow 初始化（含 SSH 关联与 gh 前置校验）
 - [ ] `F-00-02` · lint 门禁（含编码 / 静态分析禁令扫描）
 - [ ] `F-00-03` · **CI 缓存基础设施（S1）**
 - [ ] `F-00-04` · **编码与换行规范落地（S6）**

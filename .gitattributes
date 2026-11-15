@@ -1,0 +1,5 @@
+# 初版（F-00-01）：基础换行规则；全量编码段由 F-00-04 补全（PLAN 5.10）
+* text=auto
+*.sh   text eol=lf
+*.ps1  text eol=crlf
+*.bat  text eol=crlf
