@@ -422,7 +422,7 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [x] `F-02-01` · 原生命令脚本（out-of-source）
 - [x] `F-02-02` · Unix 动态加载分支（**属 RV**）
 - [x] `F-02-03` · **静态分析三层框架 + 依赖树（S7 核心）**
-- [ ] `F-02-04` · 静态分析结论报告
+- [x] `F-02-04` · 静态分析结论报告
 - [ ] `F-02-05` · **运行输出采集 + 断言基线与验收入口（S8）**
 - [ ] `F-03-01` · CMakeLists 与 CTest
 - [ ] `F-03-02` · out-of-source / RPATH 断言与基线文档
