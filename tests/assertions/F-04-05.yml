@@ -1,0 +1,31 @@
+# tests/assertions/F-04-05.yml — F-04-05 断言基线
+card: F-04-05
+checks:
+  - id: A1-mapping-table-6-toolchains
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq ^\| 1–4 \| Linux \| gcc docs/baseline.md
+    expect: exit0
+  - id: A1b-skip-boundary-documented
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq SKIP / 附加架构覆盖边界 docs/baseline.md
+    expect: exit0
+  - id: A2-pitfalls-5
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq 5 类高频跨平台坑 docs/baseline.md
+    expect: exit0
+  - id: A3-readme-known-differences
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq 已知差异与边界 README.md
+    expect: exit0
+  - id: A4-pe-negative-sample
+    action: exists
+    args: tests/negative/pe-def-missing/consumer.c
+    expect: exit0
+  - id: A4b-negative-not-in-main-path
+    action: script
+    args: ./scripts/tools/assert_tree.sh notgrep pe-def-missing CMakeLists.txt
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-04-05
+    expect: exit0
