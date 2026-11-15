@@ -76,6 +76,12 @@ jobs:
           kind: ${{ inputs.kind }}
 
       # ---- step 1: build（构建，按 group/OS 分派脚本） ----
+      - name: Setup MSVC environment (vcvars)
+        if: runner.os == 'Windows' && (inputs.toolset == 'msvc' || inputs.toolset == 'clang-cl')
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ startsWith(inputs.variant, 'x64') && 'x64' || 'x86' }}
+
       - name: Build combo
         id: build
         shell: bash
@@ -89,7 +95,7 @@ jobs:
               case "${{ inputs.os }}" in
                 linux) ./scripts/linux/native.sh "${{ inputs.variant }}" "${{ inputs.cfg }}" "${{ inputs.kind }}" ;;
                 macos) ./scripts/macos/native.sh "${{ inputs.variant }}" "${{ inputs.cfg }}" "${{ inputs.kind }}" ;;
-                *) echo "SKIP: windows native handled by native-windows.yml (F-09-02)"; exit 0 ;;
+                windows) pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/native.ps1 -Toolset "${{ inputs.toolset }}" -Variant "${{ inputs.variant }}" -Cfg "${{ inputs.cfg }}" -Kind "${{ inputs.kind }}" ;;
               esac ;;
             cmake)
               case "${{ inputs.os }}" in
