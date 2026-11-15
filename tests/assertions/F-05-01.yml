@@ -1,0 +1,33 @@
+# tests/assertions/F-05-01.yml — F-05-01 断言基线
+# A1 的 macOS/msys2 部分待 F-09-02 runner（gmake / GNU make on Windows）；本 yml 为
+# 本地可执行子集（Linux 8 形态实跑 + A2/A3/A5 + Makefile 结构断言）。
+card: F-05-01
+checks:
+  - id: A1-linux-8-forms-selftest
+    action: script
+    args: ./scripts/tools/assert_tree.sh count build/make/gnu calctool 8
+    expect: exit0
+  - id: A1b-linux-8-representative
+    action: script
+    args: ./scripts/tools/assert_tree.sh selftest build/make/gnu/linux_gcc_x64_Release/shared/calctool
+    expect: exit0
+  - id: A2-static-no-vis-flags
+    action: script
+    args: ./scripts/tools/assert_tree.sh makenovis build/make/gnu/linux_gcc_x64_Debug/static /home/ssy/proj/c-cpp-lib-lab x64 Debug
+    expect: exit0
+  - id: A3-analyze-report-made
+    action: exists
+    args: reports/linux_gcc_x64_Release/make/gnu/linux_gcc_x64_Release_shared.md
+    expect: exit0
+  - id: A5-d2-clean
+    action: script
+    args: ./scripts/tools/assert_tree.sh srcnoartifacts .
+    expect: exit0
+  - id: make-posix-vars
+    action: script
+    args: ./scripts/tools/assert_tree.sh makevar OS linux
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-05-01
+    expect: exit0

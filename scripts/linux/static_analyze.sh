@@ -24,7 +24,12 @@ TAG="$1"; KIND="$2"; GROUP="$3"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 ART="$ROOT/build/$GROUP/$TAG/$KIND"
 BIN="$ART/calctool"
-LIB_SO="$ART/libvmath.so.1.0.0"
+# 产物名探测：native 组为 soname 三级（.so.1.0.0），make/cmake 组为 .so
+if [ -f "$ART/libvmath.so.1.0.0" ]; then
+    LIB_SO="$ART/libvmath.so.1.0.0"
+else
+    LIB_SO="$ART/libvmath.so"
+fi
 LIB_A="$ART/libvmath.a"
 REPORT="$ROOT/reports/$TAG/$GROUP"
 mkdir -p "$REPORT/deps" "$REPORT/layer1" "$REPORT/layer2"
@@ -232,8 +237,8 @@ PY
 )
 case "$KIND" in
     shared)
-        if [ "$unresolved" = 0 ] && grep -q 'libvmath.so.1' "$REPORT/deps/${TAG}_${KIND}.json"; then
-            record SA-7 PASS "all NEEDED resolved via readlink -f (libvmath.so.1 + libc); symlink chain recorded"
+        if [ "$unresolved" = 0 ] && grep -q 'libvmath.so' "$REPORT/deps/${TAG}_${KIND}.json"; then
+            record SA-7 PASS "all NEEDED resolved via readlink -f (libvmath + libc); symlink chain recorded"
         else
             record SA-7 FAIL "unresolved=$unresolved"
         fi

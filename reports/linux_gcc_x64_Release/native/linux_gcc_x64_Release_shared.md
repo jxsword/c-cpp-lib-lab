@@ -9,7 +9,7 @@
 | SA-5 | PASS | export set = exactly 6 API (vmath_errno hidden by -fvisibility=hidden) |
 | SA-6 | PASS | normalize_ absent from dynamic exports |
 | SA-8 | PASS | deps tree: deps/linux_gcc_x64_Release_shared.{json,md} (BFS, realpath dedup, JSON valid) |
-| SA-7 | PASS | all NEEDED resolved via readlink -f (libvmath.so.1 + libc); symlink chain recorded |
+| SA-7 | PASS | all NEEDED resolved via readlink -f (libvmath + libc); symlink chain recorded |
 | SA-9 | PASS | glibc dynamic (libc.so.6); MSVC CRT dimension not applicable on ELF |
 | SA-10 | PASS | RUNPATH contains $ORIGIN (same-dir search): $ORIGIN |
 
