@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- vmath.vcxproj —— ② make 组·MSBuild（F-05-03；PLAN 7.2）
+     4 配置（Debug/Release × Win32/x64）× RuntimeLibrary（MultiThreadedDLL/MultiThreaded，命令行 /p: 注入）= 8 组合；
+     ConfigurationType（DynamicLibrary/StaticLibrary，命令行 /p: 注入）决定四模式宏与 .def 挂载；
+     一律 out-of-source：/p:OutDir=<abs-build>\ /p:IntDir=<abs-build>\obj\ 强制覆盖（默认值也指向 build\）。
+     不调用 GitHub CLI（9.4 J7）。 -->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{6C9A1B7E-0F4D-4A2E-9B3C-5D8E1F2A7B60}</ProjectGuid>
+    <RootNamespace>vmath</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <!-- ConfigurationType 由命令行 /p: 注入：DynamicLibrary（shared）或 StaticLibrary（static） -->
+    <ConfigurationType Condition="'$(ConfigurationType)' == ''">DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+    <!-- RuntimeLibrary 由命令行 /p: 注入：MultiThreadedDLL（/MD）或 MultiThreaded（/MT）；
+         Debug 自动 *d（/MDd /MTd）由 MSVC 编译器选项规则处理 -->
+    <RuntimeLibrary Condition="'$(RuntimeLibrary)' == ''">MultiThreadedDLL</RuntimeLibrary>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <!-- 强制 out-of-source：默认也指向 build\make\msbuild\（命令行可再覆盖为绝对路径） -->
+    <OutDir>$(SolutionDir)build\make\msbuild\$(ProjectName)_$(Configuration)_$(Platform)\</OutDir>
+    <IntDir>$(OutDir)obj\</IntDir>
+    <TargetName>vmath</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);CALC_STATIC</PreprocessorDefinitions>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(ConfigurationType)' == 'DynamicLibrary'">
+    <ClCompile>
+      <!-- 形态注入：动态 → CALC_BUILD_DLL（覆盖默认 CALC_STATIC） -->
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);CALC_BUILD_DLL</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="src\vmath_core.c" />
+    <ClCompile Include="src\vmath_report.c" />
+    <ClCompile Include="src\calctool.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- .def 仅动态（ModuleDefinitionFile 条件挂载） -->
+    <None Include="def\vmath.def" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(ConfigurationType)' == 'DynamicLibrary'">
+    <ModuleDefinitionFile>def\vmath.def</ModuleDefinitionFile>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(ConfigurationType)' == 'DynamicLibrary'">
+    <Link>
+      <ModuleDefinitionFile>$(ProjectDir)def\vmath.def</ModuleDefinitionFile>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
