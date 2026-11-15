@@ -1,0 +1,10 @@
+LIBRARY "vmath"
+EXPORTS
+    vmath_add        @1
+    vmath_dot        @2
+    vmath_set_logger @3
+    vmath_free       @4
+    vmath_build_info @5  NONAME   ; 隐藏名字，Windows 只能按 ordinal 5 取址
+    vmath_last_error @6
+; 错误码裸符号（5.2 表 7）刻意不列入导出表：一旦列入，MSVC 也会导出该符号，
+; 默认导出行为的教学对照即失效。导出表也不接受任何数据符号声明。
