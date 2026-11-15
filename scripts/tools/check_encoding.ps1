@@ -6,7 +6,7 @@ $ErrorActionPreference = 'Stop'
 $script:viol = 0
 function Report([string]$msg) { Write-Output "FAIL: $msg"; $script:viol = 1 }
 
-$exclude = '\\\.git\\|\\\.mimosa\\|\\\.zcode\\|\\build\\|\\out\\|\\tests\\fixtures\\corrupt\\'
+$exclude = '\\\.git\\|\\\.mimosa\\|\\\.zcode\\|\\build\\|\\out\\|tests/fixtures/corrupt|tests\\fixtures\\corrupt'
 $files = Get-ChildItem -LiteralPath $Target -Recurse -File |
   Where-Object { $_.FullName -notmatch $exclude } |
   Sort-Object FullName
