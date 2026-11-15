@@ -1,0 +1,77 @@
+# make-windows.yml —— Group M·Windows 18 组合（F-09-03；GNU make/msys2 8 + nmake 10）
+name: make-windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      toolset: { description: 'msys2|msvc（空=全部）', default: '' }
+      variant: { description: '变体（空=全量）', default: '' }
+      cfg: { description: 'Debug|Release（空=全量）', default: '' }
+      kind: { description: 'static|shared（空=全量）', default: '' }
+
+jobs:
+  msys2-gnu:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { variant: MINGW64, cfg: Debug, kind: static }
+          - { variant: MINGW64, cfg: Debug, kind: shared }
+          - { variant: MINGW64, cfg: Release, kind: static }
+          - { variant: MINGW64, cfg: Release, kind: shared }
+          - { variant: MINGW32, cfg: Debug, kind: static }
+          - { variant: MINGW32, cfg: Debug, kind: shared }
+          - { variant: MINGW32, cfg: Release, kind: static }
+          - { variant: MINGW32, cfg: Release, kind: shared }
+          - { variant: CLANG64, cfg: Debug, kind: static }
+          - { variant: CLANG64, cfg: Debug, kind: shared }
+          - { variant: CLANG64, cfg: Release, kind: static }
+          - { variant: CLANG64, cfg: Release, kind: shared }
+          - { variant: UCRT64, cfg: Debug, kind: static }
+          - { variant: UCRT64, cfg: Debug, kind: shared }
+          - { variant: UCRT64, cfg: Release, kind: static }
+          - { variant: UCRT64, cfg: Release, kind: shared }
+    if: inputs.toolset == '' || inputs.toolset == 'msys2'
+    uses: ./.github/workflows/_combo.yml
+    with:
+      os: windows
+      toolset: msys2
+      variant: ${{ matrix.variant }}
+      cfg: ${{ matrix.cfg }}
+      kind: ${{ matrix.kind }}
+      group: make/msys2
+
+  nmake:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { variant: x86_MD, cfg: Debug, kind: static }
+          - { variant: x86_MD, cfg: Debug, kind: shared }
+          - { variant: x86_MD, cfg: Release, kind: static }
+          - { variant: x86_MD, cfg: Release, kind: shared }
+          - { variant: x86_MT, cfg: Debug, kind: static }
+          - { variant: x86_MT, cfg: Debug, kind: shared }
+          - { variant: x86_MT, cfg: Release, kind: static }
+          - { variant: x86_MT, cfg: Release, kind: shared }
+          - { variant: x64_MD, cfg: Debug, kind: static }
+          - { variant: x64_MD, cfg: Debug, kind: shared }
+          - { variant: x64_MD, cfg: Release, kind: static }
+          - { variant: x64_MD, cfg: Release, kind: shared }
+          - { variant: x64_MT, cfg: Debug, kind: static }
+          - { variant: x64_MT, cfg: Debug, kind: shared }
+          - { variant: x64_MT, cfg: Release, kind: static }
+          - { variant: x64_MT, cfg: Release, kind: shared }
+          - { variant: x64, cfg: Debug, kind: static }
+          - { variant: x64, cfg: Debug, kind: shared }
+          - { variant: x64, cfg: Release, kind: static }
+          - { variant: x64, cfg: Release, kind: shared }
+    if: inputs.toolset == '' || inputs.toolset == 'msvc'
+    uses: ./.github/workflows/_combo.yml
+    with:
+      os: windows
+      toolset: msvc
+      variant: ${{ matrix.variant }}
+      cfg: ${{ matrix.cfg }}
+      kind: ${{ matrix.kind }}
+      group: make/nmake

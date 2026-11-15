@@ -70,8 +70,36 @@ jobs:
                 macos) ./scripts/macos/cmake.sh "${{ inputs.variant }}" "${{ inputs.cfg }}" "${{ inputs.kind }}" ;;
                 *) echo "SKIP: windows cmake handled by cmake-windows.yml (F-09-04)"; exit 0 ;;
               esac ;;
+            make/gnu)
+              # GNU make 方言（linux/macos；msys2 由 make-windows.yml 在 windows runner 处理）
+              SRCDIR="$(pwd)"
+              TAG="${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
+              B="build/make/gnu/$TAG/${{ inputs.kind }}"
+              mkdir -p "$B" && cd "$B"
+              make -f "$SRCDIR/Makefile" srcdir="$SRCDIR" VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" selftest
+              ;;
+            make/msys2)
+              # msys2 各环境的 GNU make 跑同一 Makefile（C8：按环境前缀）
+              SRCDIR="$(pwd)"
+              TAG="win_msys2_${{ inputs.variant }}_${{ inputs.cfg }}"
+              B="build/make/gnu/$TAG/${{ inputs.kind }}"
+              mkdir -p "$B" && cd "$B"
+              case "${{ inputs.variant }}" in
+                MINGW64) MAKEBIN=/d/a/_temp/msys64/mingw64/bin/make.exe ;;
+                MINGW32) MAKEBIN=/d/a/_temp/msys64/mingw32/bin/make.exe ;;
+                CLANG64) MAKEBIN=/d/a/_temp/msys64/clang64/bin/make.exe ;;
+                UCRT64)  MAKEBIN=/d/a/_temp/msys64/ucrt64/bin/make.exe ;;
+              esac
+              "$MAKEBIN" -f "$SRCDIR/Makefile" srcdir="$SRCDIR" OS=msys2 TOOLSET=gcc VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" CC="$(cygpath -m /d/a/_temp/msys64/${{ inputs.variant }}/bin/gcc.exe 2>/dev/null || echo gcc)" selftest
+              ;;
+            make/nmake)
+              pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/nmake.ps1 -Variant "${{ inputs.variant }}" -Cfg "${{ inputs.cfg }}" -Kind "${{ inputs.kind }}"
+              ;;
+            make/msbuild)
+              pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/msbuild.ps1 -Variant "${{ inputs.variant }}" -Cfg "${{ inputs.cfg }}" -Kind "${{ inputs.kind }}"
+              ;;
             *)
-              echo "SKIP: make group handled by make-*.yml / msbuild-windows.yml (F-09-03)"
+              echo "SKIP: unknown group"
               exit 0
               ;;
           esac
