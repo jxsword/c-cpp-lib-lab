@@ -2,7 +2,9 @@
 
 本文件记录 c-cpp-lib-lab 的所有显著变更。每个里程碑发布对应一个 `v<semver>` 附注 tag（落在 `main`），版本语义见 CONTRIBUTING.md「版本与 tag 策略」一节。
 
-## v0.8.0 (in progress)
+## v0.8.0 (2026-11-16) · Gate B 达成
+
+M8 里程碑发布，**Gate B 完整达成**：阶段 3（纯 C++ OOP）完成——`Vector`/`Statistics`（组合式、STL 留边界内、恰好 3源/2头）、`extern "C"` 门面 + 纯虚 vtable 契约（C 消费者零 C++ 符号依赖）、STL 跨 CRT 反例（MSVC 专属，SKIP 口径）与 ABI 面实测对比（类直出 16 mangled vs 门面 8 C 名）。三阶段语言演进（纯 C → C++ 调 C → 纯 C++ OOP）全部落档。下一里程碑 M9（Gate C）：3 组 CI + 全量 80 + 打包 + 安全 + 报告。
 
 - F-08-04 · 反例：STL 跨 CRT 与 ABI 面膨胀：新增 `tests/negative/stage3_stl_across_crt.cpp`（MSVC 专属复现样本：std::string/vector 成员类整体 dllexport）+ `run.bat`（runner 复现入口）；`run.sh` 对 MSVC 专属反例在其他 OS 输出 `SKIP` + exit 0（实测）；`reports/v0.8.0/abi-notes.md`——导出面实测对比（类直出 16 mangled 符号 vs 门面 8 C 名，减半且 ABI 稳定）与 CRT 崩溃机理表、修复结论 = F-08-03 门面。
 
