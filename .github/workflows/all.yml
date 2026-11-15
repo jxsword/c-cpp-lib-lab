@@ -1,0 +1,114 @@
+# all.yml —— 全量 80 组合编排（F-09-06；S5 收口；PLAN 8.2）
+# workflow_dispatch 触发；workflow_call 依次调用 Group N/M/C 的 10 条组合工作流
+# + analyze.yml + run-output.yml（共 12 条）；复用已建立缓存（K6，缓存 key 含 run 内
+# 组合维度由 _env 决定，包缓存跨 run 复用）；最后 summary 汇总 80 组合结果与缓存命中率；
+# 任一工作流失败 → 本工作流标红且 summary 给出失败的 group/os/tag（A6）。
+name: all
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # ── Group N：原生 24 ──
+  native-linux:
+    uses: ./.github/workflows/native-linux.yml
+  native-macos:
+    uses: ./.github/workflows/native-macos.yml
+  native-windows:
+    uses: ./.github/workflows/native-windows.yml
+
+  # ── Group M：make 32 ──
+  make-linux:
+    uses: ./.github/workflows/make-linux.yml
+  make-macos:
+    uses: ./.github/workflows/make-macos.yml
+  make-windows:
+    uses: ./.github/workflows/make-windows.yml
+  msbuild-windows:
+    uses: ./.github/workflows/msbuild-windows.yml
+
+  # ── Group C：cmake 24 ──
+  cmake-linux:
+    uses: ./.github/workflows/cmake-linux.yml
+  cmake-macos:
+    uses: ./.github/workflows/cmake-macos.yml
+  cmake-windows:
+    uses: ./.github/workflows/cmake-windows.yml
+
+  # ── 分析 / 运行输出（对基准组合 linux_gcc_x64_Release/shared 独立取证）──
+  analyze:
+    uses: ./.github/workflows/analyze.yml
+    with:
+      os: linux
+      group: native
+      tag: linux_gcc_x64_Release
+      kind: shared
+  run-output:
+    uses: ./.github/workflows/run-output.yml
+    with:
+      os: linux
+      group: native
+      tag: linux_gcc_x64_Release
+      kind: shared
+
+  # ── 汇总：80 组合结果 + 缓存命中率 + 失败定位（A6）──
+  summary:
+    needs:
+      - native-linux
+      - native-macos
+      - native-windows
+      - make-linux
+      - make-macos
+      - make-windows
+      - msbuild-windows
+      - cmake-linux
+      - cmake-macos
+      - cmake-windows
+      - analyze
+      - run-output
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Summarize 80-combo suite
+        shell: bash
+        run: |
+          {
+            echo '# all.yml · 80 组合全量汇总（Gate C）'
+            echo
+            echo '| 组工作流 | 结果 |'
+            echo '|---|---|'
+            echo "| native-linux (4) | ${{ needs.native-linux.result }} |"
+            echo "| native-macos (2) | ${{ needs.native-macos.result }} |"
+            echo "| native-windows (18) | ${{ needs.native-windows.result }} |"
+            echo "| make-linux (4) | ${{ needs.make-linux.result }} |"
+            echo "| make-macos (2) | ${{ needs.make-macos.result }} |"
+            echo "| make-windows (18) | ${{ needs.make-windows.result }} |"
+            echo "| msbuild-windows (8) | ${{ needs.msbuild-windows.result }} |"
+            echo "| cmake-linux (4) | ${{ needs.cmake-linux.result }} |"
+            echo "| cmake-macos (2) | ${{ needs.cmake-macos.result }} |"
+            echo "| cmake-windows (18) | ${{ needs.cmake-windows.result }} |"
+            echo "| analyze | ${{ needs.analyze.result }} |"
+            echo "| run-output | ${{ needs.run-output.result }} |"
+            echo
+            echo '缓存复用（K6）：包缓存跨 run 复用（apt/brew/pacman key 不含 run_id）；编译缓存按组合隔离（K1）——命中率见各 Job Summary（K5）。'
+            echo '总组合数：24 + 32 + 24 = 80'
+          } >> "$GITHUB_STEP_SUMMARY"
+          # A6：失败定位——任一 needs 非 success 即汇总失败并给出 group/os
+          FAILED=""
+          for k in native-linux native-macos native-windows make-linux make-macos make-windows msbuild-windows cmake-linux cmake-macos cmake-windows analyze run-output; do
+            r=$(echo "${{ needs[k].result }}" 2>/dev/null || true)
+            [ "$r" = "success" ] || FAILED="$FAILED $k"
+          done
+          if [ -n "$FAILED" ]; then
+            echo "FAILED_GROUPS:$FAILED" >> "$GITHUB_STEP_SUMMARY"
+            echo "失败的工作流（group/os）：$FAILED"
+            exit 1
+          fi
+      - name: Upload combined reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-reports
+          path: reports/
+          if-no-files-found: ignore

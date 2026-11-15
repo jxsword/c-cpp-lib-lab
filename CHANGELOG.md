@@ -4,6 +4,8 @@
 
 ## v1.0.0 (in progress)
 
+- F-09-06 · `all.yml` 全量 80 组合编排（S5 收口）：10 条组合 workflow 全部补 `workflow_call` 触发器；新增 `all.yml`（workflow_dispatch → uses 12 条（10 组合 + analyze + run-output）→ `summary` job 汇总三组 24/32/24 结果、K6 缓存复用说明、`FAILED_GROUPS` 失败定位（A6 标红+给 group/os）、all-reports artifact）；全量 80 实跑与干净机 job 登记 R-09 批量执行（runner 时长 + 默认分支约束）。
+
 - F-09-05 · 静态分析与运行输出工作流（S7/S8）：新增 `analyze.yml`（独立 dispatch：重建 → 三层 SA → SA 矩阵入 Job Summary → artifact）与 `run-output.yml`（独立 dispatch：RV-1…RV-4 采集 → **程序实际输出进 $GITHUB_STEP_SUMMARY 代码块**（A4）→ artifact），互不依赖；`scripts/summarize_reports.sh` 生成 `reports/v1.0.0/SUMMARY.md` 80 组合行（24/32/24 分组）+ 六类跨平台差异标注表（默认导出/ordinal/CRT/Debug-Release/mangling/macOS 架构）；dispatch 实测登记 R-09 批量执行。
 
 - F-09-04 · Group C cmake 组 3 条工作流（24 组合）：新增 `cmake-{linux,macos}.yml`（6 组合）+ `cmake-windows.yml`（msvc 8 + msys2 8 + clang-cl 2 = 18，36 形态行）；`_combo.yml` 的 cmake/windows 分支补真实构建（msvc/clang-cl 强制 `-G Ninja`（S9）+ `CMAKE_MSVC_RUNTIME_LIBRARY` 按 variant 注入，msys2 走 MinGW 生成器）；脚本化核验 4+2+18=24 无重复；dispatch 实测登记 R-09 批量执行。

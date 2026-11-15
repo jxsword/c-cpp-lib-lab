@@ -2,6 +2,7 @@
 name: make-linux
 
 on:
+  workflow_call:
   workflow_dispatch:
     inputs:
       toolset: { description: 'gcc', default: 'gcc' }

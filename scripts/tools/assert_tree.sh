@@ -132,6 +132,12 @@ print(total)
         n=$(grep -cE -- "$1" "$2")
         [ "$n" -eq "$3" ]
         ;;
+    # globgrep <glob> <pattern> —— 每个匹配文件都含该 pattern（glob 由脚本内展开）
+    globgrep)
+        for f in $1; do
+            grep -aqE -- "$2" "$f" || exit 1
+        done
+        ;;
     # rpath <elf> <子串> —— RUNPATH 值含该子串
     rpath)
         readelf -d "$1" 2>/dev/null | grep RUNPATH | grep -q "$2"

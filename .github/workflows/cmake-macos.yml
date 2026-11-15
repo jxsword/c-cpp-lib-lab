@@ -2,6 +2,7 @@
 name: cmake-macos
 
 on:
+  workflow_call:
   workflow_dispatch:
     inputs:
       toolset: { description: 'clang', default: 'clang' }

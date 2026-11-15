@@ -3,6 +3,7 @@
 name: native-linux
 
 on:
+  workflow_call:
   workflow_dispatch:
     inputs:
       toolset: { description: 'gcc（Linux 仅 gcc）', default: 'gcc' }

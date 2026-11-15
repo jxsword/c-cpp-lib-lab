@@ -4,6 +4,7 @@
 name: native-windows
 
 on:
+  workflow_call:
   workflow_dispatch:
     inputs:
       toolset: { description: 'msvc|msys2|clang-cl（空=全部）', default: '' }
