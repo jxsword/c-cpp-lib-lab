@@ -1,0 +1,27 @@
+# tests/assertions/F-08-04.yml — F-08-04 断言基线
+card: F-08-04
+checks:
+  - id: A2-skip-on-non-windows
+    action: run
+    args: ./tests/negative/run.sh stage3_stl_across_crt
+    expect: exit0
+  - id: A2b-skip-message
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq SKIP:.MSVC-specific tests/negative/run.sh
+    expect: exit0
+  - id: A3-abi-notes-symbol-table
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq 16 reports/v0.8.0/abi-notes.md
+    expect: exit0
+  - id: A3b-abi-notes-fix-conclusion
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq F-08-03 门面 reports/v0.8.0/abi-notes.md
+    expect: exit0
+  - id: A4-negative-not-in-main-path
+    action: script
+    args: ./scripts/tools/assert_tree.sh notgrep stage3_stl_across_crt CMakeLists.txt
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-08-04
+    expect: exit0
