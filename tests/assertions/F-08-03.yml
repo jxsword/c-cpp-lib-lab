@@ -11,7 +11,7 @@ checks:
     expect: exit0
   - id: A2-facade-c-names
     action: script
-    args: ./scripts/tools/assert_tree.sh grepeq T.stage3_istats_create /tmp/vc-facade-check.o
+    args: ./scripts/tools/assert_tree.sh nmclass /tmp/vc-facade-check.o stage3_istats_create
     expect: exit0
   - id: A3-no-stl-inline-template
     action: script
