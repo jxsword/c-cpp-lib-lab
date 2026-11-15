@@ -46,6 +46,15 @@ runs:
   steps:
 
     # ── 1/7 Linux: apt deb 包（5.9.2 行 1）─────────────────────────────────────
+    # 镜像预置的 archives/lock 与 partial/ 为 root 属主，restore 解包 tar 会因
+    # 无权覆盖而失败（exit 2 → 视为未命中）——restore 之前先收敛属主
+    - name: Prepare apt cache dir (runner-writable)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo mkdir -p /var/cache/apt/archives/partial
+        sudo chown -R "$(id -un):" /var/cache/apt/archives
+
     - name: Restore apt debs
       id: apt-restore
       if: runner.os == 'Linux'
