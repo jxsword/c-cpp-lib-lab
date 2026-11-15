@@ -1,0 +1,27 @@
+# tests/assertions/F-00-04.yml — F-00-04 断言基线（F-02-05 起机器可执行；原始输出见卡回执 PR #15）
+card: F-00-04
+checks:
+  - id: A1-ps1-bom
+    action: script
+    args: ./scripts/tools/assert_tree.sh bom scripts/windows/env.ps1
+    expect: exit0
+  - id: A2-bat-crlf-and-encoding
+    action: run
+    args: ./scripts/tools/check_encoding.sh scripts/windows
+    expect: exit0
+  - id: A3-corruption-detected
+    action: run
+    args: ./scripts/tools/check_encoding.sh tests/fixtures/corrupt
+    expect: exit:1
+  - id: A4-gitattributes-bat-verbatim
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq ^\*\.bat[[:space:]]+-text$ .gitattributes
+    expect: exit0
+  - id: A5-scanner-clean
+    action: run
+    args: ./scripts/tools/scan_dynamic_calls.sh
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-00-04
+    expect: exit0

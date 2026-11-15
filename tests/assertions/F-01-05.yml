@@ -1,0 +1,27 @@
+# tests/assertions/F-01-05.yml — F-01-05 断言基线（F-02-05 起机器可执行；原始输出见卡回执 PR #26）
+card: F-01-05
+checks:
+  - id: A1-m4-build
+    action: run
+    args: gcc -Wall -Wextra -Werror -Iinclude -DCALC_NO_LIB src/vmath_core.c src/vmath_report.c src/calctool.c -lm -o /tmp/vc-verify-cli
+    expect: exit0
+  - id: A1-selftest
+    action: script
+    args: ./scripts/tools/assert_tree.sh selftest /tmp/vc-verify-cli
+    expect: exit0
+  - id: A3-dim-error-exit2
+    action: run
+    args: /tmp/vc-verify-cli dot 1,2 1,2,3
+    expect: exit:2
+  - id: A4-errno-only-in-core
+    action: script
+    args: ./scripts/tools/assert_tree.sh errnoonly vmath_errno src src/vmath_core.c
+    expect: exit0
+  - id: A5-dynamic-stub-explicit
+    action: run
+    args: /tmp/vc-verify-cli --dynamic
+    expect: exit:2
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-01-05
+    expect: exit0

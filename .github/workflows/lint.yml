@@ -30,6 +30,9 @@ jobs:
           while IFS= read -r f; do
             [ -f "$f" ] || continue
             case "$f" in
+              tests/fixtures/corrupt/*) continue ;; # 编码破坏夹具：故意违规，供校验器负例测试
+            esac
+            case "$f" in
               *.ps1)          t=ps1 ;;
               *.bat|*.cmd)    t=bat ;;
               *.sh)           t=sh  ;;

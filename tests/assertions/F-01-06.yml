@@ -1,0 +1,19 @@
+# tests/assertions/F-01-06.yml — F-01-06 断言基线（F-02-05 起机器可执行；原始输出见卡回执 PR #27）
+card: F-01-06
+checks:
+  - id: A1-smoke-four-modes
+    action: run
+    args: ./scripts/linux/smoke_four_modes.sh gcc x64 Release
+    expect: exit0
+  - id: A4-baseline-51-54
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq ^##.*5\.[1-4] docs/baseline.md
+    expect: exit0
+  - id: A5-no-o-in-tree
+    action: script
+    args: ./scripts/tools/assert_tree.sh srcnoartifacts .
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-01-06
+    expect: exit0
