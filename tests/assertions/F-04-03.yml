@@ -1,0 +1,34 @@
+# tests/assertions/F-04-03.yml — F-04-03 断言基线
+# 产物级断言（A1 按名/ordinal 取值 / A2 NONAME 按名 NULL / A3 ordinal-5 非 NULL / A4 卸载无悬空）
+# 需 Windows runner（msvc .def 导出表），自 F-09-02 起在 CI 实证；
+# 本 yml 为本地可执行机器子集（分叉结构 / Linux 回归 / A5 扫描 / RV run.ps1 编排）。
+card: F-04-03
+checks:
+  - id: A2-structure-noname-null-expectation
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq NONAME symbol resolved by name src/calctool.c
+    expect: exit0
+  - id: A3-structure-ordinal5-lookup
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq MAKEINTRESOURCEA\(5\) src/calctool.c
+    expect: exit0
+  - id: A4-structure-freelib-after-unlog
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq no dangling calls src/calctool.c
+    expect: exit0
+  - id: regression-linux-dynamic-path
+    action: run
+    args: build/native/linux_gcc_x64_Release/shared/calctool --dynamic build/native/linux_gcc_x64_Release/shared/libvmath.so.1.0.0 add 1 2
+    expect: regex:library unloaded
+  - id: A5-analyze-scan-clean
+    action: run
+    args: ./scripts/tools/scan_dynamic_calls.sh
+    expect: exit0
+  - id: baseline-hardening-section
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq LOAD_LIBRARY_SEARCH docs/baseline.md
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-04-03
+    expect: exit0

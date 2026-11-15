@@ -83,3 +83,15 @@
 - **RV-1…RV-4**（运行验证，非分析）：`--self-test` / `info` / `add`+`dot` / `--dynamic`——独立 `run.sh` 通道，与分析脚本文件、报告目录、CI step 均不同（P5 / C18 隔离）。
 - 导出集：动态库恰 6 API；gcc/MinGW 默认可见性下额外 `vmath_errno`（`-fvisibility=hidden` 下隐藏，如实记录）；`normalize_` 不在任何导出表（Release-O2 可能被内联消失，同样达成）。
 - x86 静态库的 `__x86.get_pc_thunk.*` 为编译器辅助符号，不计入导出集断言。
+
+## Windows 动态加载：`LOAD_LIBRARY_SEARCH_*` 加固对照（F-04-03）
+
+| 加载方式 | 行为 | 安全/加固对照 |
+|---|---|---|
+| `LoadLibraryA("vmath.dll")`（裸名） | 走 PE 搜索顺序（应用目录 → System32 → … → PATH） | **PATH 劫持面**：当前目录与 PATH 中的同名 DLL 可被劫持（历史 CVE 类别） |
+| `LoadLibraryExA(..., LOAD_LIBRARY_SEARCH_APPLICATION_DIR)` | 限定应用目录 | 收敛搜索面，消除 PATH 注入 |
+| `LOAD_LIBRARY_SEARCH_SYSTEM32` | 仅系统目录 | 最小信任面；依赖系统 DLL 时推荐 |
+| 本项目实现（`--dynamic` RV） | **绝对路径** `LoadLibraryA(<full path>)` | 与绝对路径等价：不触发搜索顺序，教学上先做「无加固的绝对路径」基线，加固开关留作 RV 变体 |
+| `GetDllImportSearchPath` / SafeDllSearchMode | 注册表/系统默认 | SafeDllSearchMode（XP SP2+ 默认开）已把当前目录后置；但仍晚于应用目录 |
+
+结论：教学基线用绝对路径（无搜索歧义）；加固变体（`LOAD_LIBRARY_SEARCH_APPLICATION_DIR \| LOAD_LIBRARY_SEARCH_SYSTEM32`）登记为 RV 附加演示（M9 安全演示 F-09-08 补）。
