@@ -30,6 +30,14 @@
 
 **当前仅 Linux 单平台**（native + CMake 两种构建方式 × gcc x86/x64 × Debug/Release × static/shared）。三 OS（Windows msvc/msys2/clang-cl、macOS）与 make 组（GNU make/nmake/MSBuild）见里程碑 M4–M6（Gate B），make 组属 M5、CMake 三 OS 属 M6。
 
+### 已知差异与边界（M4 收口）
+
+- **macOS 32 位（x86）**：客观不可实现（10.15 Catalina 移除 32 位支持）——矩阵输入 `x86` 一律 **SKIP + exit 0**，不计数组。
+- **macOS x86_64 与 `lipo` universal**：**附加不计数组**的架构覆盖验证（脚本就绪，CI runner 实证）。
+- **Linux clang**：用户明确移出 24 组合矩阵，降为不计数组的本地可选验证。
+- **产物级断言验证**：macOS/Windows 组合的构建与分析实测自 **F-09-02 CI runner**（native-{macos,windows}.yml）起进行；本地（Linux）验证覆盖脚本语法、编码规范、pwsh/bash 解析与结构断言。
+- 反例样本（期望失败，不进主绿路径）：`tests/negative/static-with-dllimport/`（ELF 模拟）、`tests/negative/pe-def-missing/`（PE 原生）。
+
 ## 状态
 
 - 当前里程碑：M3（`v0.3.0` Gate A，详见 [CHANGELOG.md](CHANGELOG.md) 与 [reports/v0.3.0/SUMMARY.md](reports/v0.3.0/SUMMARY.md)）
