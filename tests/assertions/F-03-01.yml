@@ -1,0 +1,31 @@
+# tests/assertions/F-03-01.yml — F-03-01 断言基线
+card: F-03-01
+checks:
+  - id: A1-eight-cmake-products
+    action: script
+    args: ./scripts/tools/assert_tree.sh count build/cmake calctool 8
+    expect: exit0
+  - id: A2-ctest-representative
+    action: run
+    args: ctest --test-dir build/cmake/linux_gcc_x64_Release/shared
+    expect: exit0
+  - id: A2b-ctest-x86-static
+    action: run
+    args: ctest --test-dir build/cmake/linux_gcc_x86_Debug/static
+    expect: exit0
+  - id: A3-static-no-hidden-visibility
+    action: script
+    args: ./scripts/tools/assert_tree.sh notgrep fvisibility build/cmake/linux_gcc_x64_Debug/static/compile_commands.json
+    expect: exit0
+  - id: A4-windows-export-off
+    action: script
+    args: ./scripts/tools/assert_tree.sh notgrep 'WINDOWS_EXPORT_ALL_SYMBOLS:BOOL=ON' build/cmake/linux_gcc_x64_Debug/shared/CMakeCache.txt
+    expect: exit0
+  - id: A5-src-tree-clean
+    action: script
+    args: ./scripts/tools/assert_tree.sh srcnoartifacts .
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-03-01
+    expect: exit0
