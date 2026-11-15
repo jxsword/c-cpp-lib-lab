@@ -2,7 +2,15 @@
 
 本文件记录 c-cpp-lib-lab 的所有显著变更。每个里程碑发布对应一个 `v<semver>` 附注 tag（落在 `main`），版本语义见 CONTRIBUTING.md「版本与 tag 策略」一节。
 
-## v0.4.0 (in progress)
+## v0.4.0 (2026-11-16)
+
+M4 里程碑发布：24 组合矩阵三 OS 脚本矩阵全就绪（macOS bash + Windows bat/ps1 + 三层分析扩展 + JSON schema 统一）；Linux 16 组合形态实跑全绿；macOS/Windows 产物级实证按计划委托 F-09-02 各 OS runner CI（执行口径如实分列，见 `reports/v0.4.0/SUMMARY.md`）。工具链映射表与 5 类跨平台坑固化。下一里程碑进入 make 组 32 组合（M5）。
+
+## v0.4.0 (in progress) 之下历史段
+
+## v0.4.0-in-progress (2026-11-16)
+
+- F-04-05 · 24 组合矩阵收口与约束记录：`docs/baseline.md` 补 24 组合工具链映射表（6 类工具链 × 32/64 开关/动态库命令/导入库/CRT 四列）与 5 类高频跨平台坑；README 增「已知差异与边界」（macOS x86 SKIP、x86_64/universal 附加覆盖、Linux clang 移出、产物级断言委托 CI）；`tests/negative/pe-def-missing/` PE 反例样本。
 
 - F-04-05 · 24 组合矩阵收口与约束记录：`docs/baseline.md` 补 24 组合工具链映射表（6 类工具链 × 32/64 开关/动态库命令/导入库/CRT 四列）与 5 类高频跨平台坑；README 增「已知差异与边界」（macOS x86 SKIP、x86_64/universal 附加覆盖、Linux clang 移出、产物级断言委托 CI）；`tests/negative/pe-def-missing/` PE 反例样本。
 
