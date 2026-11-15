@@ -65,7 +65,12 @@ capture RV-3 2 "$BIN" dot 1,2 1,2,3
 # RV-4: --dynamic（仅 shared 形态存在动态库；功能演示，非分析）
 if [ "$KIND" = shared ]; then
     LIBDIR="$(dirname "$BIN")"
-    capture RV-4 0 "$BIN" --dynamic "$LIBDIR/libvmath.so.1.0.0" add 1 2
+    # 产物名探测：native 组 soname 三级（.so.1.0.0），make/cmake 组平名（.so）
+    if [ -f "$LIBDIR/libvmath.so.1.0.0" ]; then
+        capture RV-4 0 "$BIN" --dynamic "$LIBDIR/libvmath.so.1.0.0" add 1 2
+    else
+        capture RV-4 0 "$BIN" --dynamic "$LIBDIR/libvmath.so" add 1 2
+    fi
     capture RV-4 2 "$BIN" --dynamic /nonexistent/libvmath.so add 1 2
 else
     {

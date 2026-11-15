@@ -40,6 +40,9 @@ jobs:
       variant: ${{ matrix.variant }}
       cfg: ${{ matrix.cfg }}
       kind: ${{ matrix.kind }}
+      filter_variant: ${{ inputs.variant }}
+      filter_cfg: ${{ inputs.cfg }}
+      filter_kind: ${{ inputs.kind }}
       group: make/msys2
 
   nmake:
@@ -75,4 +78,7 @@ jobs:
       variant: ${{ matrix.variant }}
       cfg: ${{ matrix.cfg }}
       kind: ${{ matrix.kind }}
+      filter_variant: ${{ inputs.variant }}
+      filter_cfg: ${{ inputs.cfg }}
+      filter_kind: ${{ inputs.kind }}
       group: make/nmake

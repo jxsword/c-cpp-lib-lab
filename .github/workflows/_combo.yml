@@ -23,6 +23,19 @@ on:
       kind:
         required: true
         type: string
+      filter_variant:
+        description: 'dispatch 过滤：空=全量；非空则仅 variant 匹配的 job 实跑'
+        required: false
+        type: string
+        default: ''
+      filter_cfg:
+        required: false
+        type: string
+        default: ''
+      filter_kind:
+        required: false
+        type: string
+        default: ''
       group:
         required: true
         type: string # native | make/gnu | make/nmake | make/msbuild | cmake
@@ -44,6 +57,8 @@ jobs:
   combo:
     needs: env
     runs-on: ${{ inputs.os == 'linux' && 'ubuntu-latest' || inputs.os == 'macos' && 'macos-14' || 'windows-latest' }}
+    env:
+      FILTER_MATCH: ${{ (inputs.filter_variant == '' || inputs.filter_variant == inputs.variant) && (inputs.filter_cfg == '' || inputs.filter_cfg == inputs.cfg) && (inputs.filter_kind == '' || inputs.filter_kind == inputs.kind) }}
     outputs:
       sa_pass: ${{ steps.analyze.outcome == 'success' }}
     steps:
@@ -61,19 +76,26 @@ jobs:
           kind: ${{ inputs.kind }}
 
       # ---- step 1: build（构建，按 group/OS 分派脚本） ----
+      - name: Setup MSVC environment (vcvars)
+        if: runner.os == 'Windows' && (inputs.toolset == 'msvc' || inputs.toolset == 'clang-cl')
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ startsWith(inputs.variant, 'x64') && 'x64' || 'x86' }}
+
       - name: Build combo
         id: build
         shell: bash
         run: |
           set -e
-          TAG="${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
+          OSPREFIX="${{ inputs.os }}"; [ "$OSPREFIX" = windows ] && OSPREFIX=win
+          TAG="${OSPREFIX}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           case "${{ inputs.group }}" in
             native)
               case "${{ inputs.os }}" in
                 linux) ./scripts/linux/native.sh "${{ inputs.variant }}" "${{ inputs.cfg }}" "${{ inputs.kind }}" ;;
                 macos) ./scripts/macos/native.sh "${{ inputs.variant }}" "${{ inputs.cfg }}" "${{ inputs.kind }}" ;;
-                *) echo "SKIP: windows native handled by native-windows.yml (F-09-02)"; exit 0 ;;
+                windows) pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/native.ps1 -Toolset "${{ inputs.toolset }}" -Variant "${{ inputs.variant }}" -Cfg "${{ inputs.cfg }}" -Kind "${{ inputs.kind }}" ;;
               esac ;;
             cmake)
               case "${{ inputs.os }}" in
@@ -94,7 +116,8 @@ jobs:
             make/gnu)
               # GNU make 方言（linux/macos；msys2 由 make-windows.yml 在 windows runner 处理）
               SRCDIR="$(pwd)"
-              TAG="${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
+              OSPREFIX="${{ inputs.os }}"; [ "$OSPREFIX" = windows ] && OSPREFIX=win
+          TAG="${OSPREFIX}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
               B="build/make/gnu/$TAG/${{ inputs.kind }}"
               mkdir -p "$B" && cd "$B"
               make -f "$SRCDIR/Makefile" srcdir="$SRCDIR" VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" selftest
@@ -128,10 +151,11 @@ jobs:
       # ---- step 2: RV 运行输出采集（独立 step / 独立脚本 / reports/<tag>/run/） ----
       - name: RV run output capture
         id: rv
-        if: always() && steps.build.outcome == 'success'
+        if: always() && env.FILTER_MATCH == 'true' && steps.build.outcome == 'success'
         shell: bash
         run: |
-          TAG="${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
+          OSPREFIX="${{ inputs.os }}"; [ "$OSPREFIX" = windows ] && OSPREFIX=win
+          TAG="${OSPREFIX}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
           case "${{ inputs.os }}" in
             linux) ./scripts/linux/run.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
             macos) ./scripts/macos/run.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
@@ -141,10 +165,11 @@ jobs:
       # ---- step 3: SA 三层静态分析（独立 step / 独立脚本 / reports/<tag>/<group>/） ----
       - name: SA static analysis
         id: analyze
-        if: always() && steps.build.outcome == 'success'
+        if: always() && env.FILTER_MATCH == 'true' && steps.build.outcome == 'success'
         shell: bash
         run: |
-          TAG="${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
+          OSPREFIX="${{ inputs.os }}"; [ "$OSPREFIX" = windows ] && OSPREFIX=win
+          TAG="${OSPREFIX}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
           case "${{ inputs.os }}" in
             linux) ./scripts/linux/analyze.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
             macos) ./scripts/macos/analyze.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
@@ -159,7 +184,7 @@ jobs:
 
       # ---- step 5: 结论表 + artifact（A5：仅 Release 上传发布报告） ----
       - name: Summary to job summary
-        if: always()
+        if: always() && env.FILTER_MATCH == 'true'
         shell: bash
         run: |
           {
@@ -169,7 +194,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload reports artifact
-        if: always() && inputs.cfg == 'Release'
+        if: always() && env.FILTER_MATCH == 'true' && inputs.cfg == 'Release'
         uses: actions/upload-artifact@v4
         with:
           name: reports-${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}_${{ inputs.kind }}
