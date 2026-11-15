@@ -1,0 +1,41 @@
+# tests/assertions/F-05-02.yml — F-05-02 断言基线
+# A2–A4 产物级断言（nmake/cl/dumpbin）需 vcvars 环境，自 F-09-02 windows runner 实证；
+# 本 yml 为本地可执行机器子集（独立文件 / CRLF 无 BOM / 语法结构 / D2）。
+card: F-05-02
+checks:
+  - id: A1-standalone-file
+    action: run
+    args: ls Makefile Makefile.nmake
+    expect: exit0
+  - id: A1b-no-cross-include
+    action: script
+    args: ./scripts/tools/assert_tree.sh notgrep Makefile$ Makefile.nmake
+    expect: exit0
+  - id: A5-crlf-no-bom
+    action: script
+    args: ./scripts/tools/assert_tree.sh crlf Makefile.nmake
+    expect: exit0
+  - id: A5b-check-encoding-green
+    action: run
+    args: ./scripts/tools/check_encoding.sh
+    expect: exit0
+  - id: nmake-syntax-conditional
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq ^!IF Makefile.nmake
+    expect: exit0
+  - id: nmake-crt-cfg-linkage
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq BASE_CRT)d Makefile.nmake
+    expect: exit0
+  - id: nmake-def-shared-only
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq /DEF:\$\(SRCDIR\)\\def\\vmath\.def Makefile.nmake
+    expect: exit0
+  - id: A6-d2-clean
+    action: script
+    args: ./scripts/tools/assert_tree.sh srcnoartifacts .
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-05-02
+    expect: exit0

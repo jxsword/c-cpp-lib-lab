@@ -431,10 +431,10 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [x] `F-04-03` · Windows 动态加载（按名 + ordinal，**属 RV**）
 - [x] `F-04-04` · **静态分析三 OS 扩展（S7）**
 - [x] `F-04-05` · 24 组合矩阵收口与约束记录
-- [ ] `F-05-01` · GNU make（14 组合）
-- [ ] `F-05-02` · **nmake 单独 makefile（10 组合，S9）**
-- [ ] `F-05-03` · MSBuild（8 组合）
-- [ ] `F-05-04` · 32 组合横向对比
+- [x] `F-05-01` · GNU make（14 组合）
+- [x] `F-05-02` · **nmake 单独 makefile（10 组合，S9）**
+- [x] `F-05-03` · MSBuild（8 组合）
+- [x] `F-05-04` · 32 组合横向对比
 - [ ] `F-06-01` · CMake 三 OS 24 组合
 - [ ] `F-06-02` · CTest 三 OS 与 out-of-source 断言
 - [ ] `F-07-01` · C++ 主程序
@@ -461,7 +461,7 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [x] `R-02` · 发布 `v0.2.0`
 - [x] `R-03` · 发布 `v0.3.0`（Gate A）
 - [x] `R-04` · 发布 `v0.4.0`
-- [ ] `R-05` · 发布 `v0.5.0`
+- [x] `R-05` · 发布 `v0.5.0`
 - [ ] `R-06` · 发布 `v0.6.0`
 - [ ] `R-07` · 发布 `v0.7.0`
 - [ ] `R-08` · 发布 `v0.8.0`（Gate B）

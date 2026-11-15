@@ -2,18 +2,25 @@
 
 本文件记录 c-cpp-lib-lab 的所有显著变更。每个里程碑发布对应一个 `v<semver>` 附注 tag（落在 `main`），版本语义见 CONTRIBUTING.md「版本与 tag 策略」一节。
 
+## v0.5.0 (2026-11-16)
+
+M5 里程碑发布：② make 组 32 组合三方言全就绪——GNU make（`Makefile`，Linux 8 形态实跑全绿）、nmake（`Makefile.nmake` CRLF 独立文件）、MSBuild（`vmath.vcxproj`）；`verify_make32.{sh,ps1}` parity 口径核验（14+10+8=32、/MD //MT 为 variant 字段、注入差异表落档）。macOS/msys2/nmake/MSBuild 产物级实证委托 F-09-02 runner（口径如实分列，见 `reports/v0.5.0/SUMMARY.md`）。下一里程碑 CMake 三 OS（M6，Gate B 收口）。
+
+- F-05-04 · 32 组合横向对比：新增 `scripts/verify_make32.{sh,ps1}`（32 行唯一标签清单、三方言 14/10/8 口径核验、/MD //MT 为 variant 字段（16 行携带 + clang-cl 参数承载）、Linux gnu info↔标签 8/8 实跑核对）与 `reports/v0.5.0/SUMMARY.md`（三方言注入差异记录表）；不改 5.5 定义。
+
+- F-05-04 · 32 组合横向对比：新增 `scripts/verify_make32.{sh,ps1}`（32 行唯一标签清单、三方言 14/10/8 口径核验、/MD //MT 为 variant 字段（16 行携带 + clang-cl 参数承载）、Linux gnu info↔标签 8/8 实跑核对）与 `reports/v0.5.0/SUMMARY.md`（三方言注入差异记录表）；不改 5.5 定义。
+
+- F-05-03 · MSBuild（8 组合）：新增 `vmath.vcxproj`（4 配置 Debug/Release × Win32/x64、`PlatformToolset v143`、`ConfigurationType` 与 `RuntimeLibrary` 命令行 `/p:` 注入（DynamicLibrary/StaticLibrary ↔ CALC_BUILD_DLL/CALC_STATIC 形态宏、MultiThreadedDLL/MultiThreaded ↔ /MD//MT）、`ModuleDefinitionFile` 条件挂载仅动态、`OutDir/IntDir` 默认即 `build\make\msbuild\` 强制 out-of-source）并完整化 `scripts/windows/msbuild.{bat,ps1}`（Kind→ConfigurationType、Variant→RuntimeLibrary 映射）；8 组合产物级实测待 F-09-02 windows runner。
+
+- F-05-02 · nmake 单独 makefile（10 组合，S9）：新增 `Makefile.nmake`（**独立于 GNU Makefile 的 CRLF 无 BOM 文件**；`!IF/!ELSE/!ENDIF` 条件、`/MD`↔`/MDd` `/MT`↔`/MTd` 随 CFG 联动、`/DEF:$(SRCDIR)\def\vmath.def` 仅动态、`/MACHINE` 随变体、`SRCDIR/OUTDIR` 强制 out-of-source、`selftest/analyze` 目标）并完整化 `scripts/windows/nmake.{bat,ps1}`（vcvars 缺失时 NOTE 降级）；10 组合（msvc 8 + clang-cl 2）产物级实测待 F-09-02 windows runner。
+
+- F-05-01 · GNU make（14 组合）：新增 `Makefile`（`?=` 变量 OS/TOOLSET/VARIANT/CFG/KIND/CC、`srcdir`/`outdir` 强制 out-of-source、`VIS` 仅 shared、`DEF_LIB/DEF_APP` 按 KIND 分派、动态库名按 OS 分派 `libvmath.so`/`libvmath.dylib`/`vmath.dll`、`selftest`/`analyze` 目标、msys2 加 `--out-implib`）；Linux 4 组合 × 2 形态 8/8 selftest 绿（A2 `make -n` 静态零 hidden/PIC；A3 `make analyze` 产报告；`-Wl,-rpath,'$$ORIGIN'`）；macOS gmake / msys2 GNU make 待 F-09-02 runner。
+
 ## v0.4.0 (2026-11-16)
 
 M4 里程碑发布：24 组合矩阵三 OS 脚本矩阵全就绪（macOS bash + Windows bat/ps1 + 三层分析扩展 + JSON schema 统一）；Linux 16 组合形态实跑全绿；macOS/Windows 产物级实证按计划委托 F-09-02 各 OS runner CI（执行口径如实分列，见 `reports/v0.4.0/SUMMARY.md`）。工具链映射表与 5 类跨平台坑固化。下一里程碑进入 make 组 32 组合（M5）。
 
-## v0.4.0 (in progress) 之下历史段
-
-## v0.4.0-in-progress (2026-11-16)
-
 - F-04-05 · 24 组合矩阵收口与约束记录：`docs/baseline.md` 补 24 组合工具链映射表（6 类工具链 × 32/64 开关/动态库命令/导入库/CRT 四列）与 5 类高频跨平台坑；README 增「已知差异与边界」（macOS x86 SKIP、x86_64/universal 附加覆盖、Linux clang 移出、产物级断言委托 CI）；`tests/negative/pe-def-missing/` PE 反例样本。
-
-- F-04-05 · 24 组合矩阵收口与约束记录：`docs/baseline.md` 补 24 组合工具链映射表（6 类工具链 × 32/64 开关/动态库命令/导入库/CRT 四列）与 5 类高频跨平台坑；README 增「已知差异与边界」（macOS x86 SKIP、x86_64/universal 附加覆盖、Linux clang 移出、产物级断言委托 CI）；`tests/negative/pe-def-missing/` PE 反例样本。
-
 - F-04-04 · 静态分析三 OS 扩展（S7）：三 OS 依赖树输出统一 JSON schema（`root{path,arch,compiler,cfg}` + `tree{name,logical,real,origin,children}` + `symlink_chains`/`dedup`，Linux 实证四字段）；`deps_tree.ps1` 增 `Get-Item -Force` 的 LinkType symlink/junction 判定与 API-Set/KnownDLL 归类；第二层工具接入（macOS `dylibbundler` 分析模式、Windows Dependencies CLI，版本 pin 于 tool-versions.env，缺失即记录）；产物级断言（A1–A3）待各 OS runner CI 实证。
 
 - F-04-03 · Windows 动态加载（RV）：`calctool --dynamic` 平台分叉——Windows 分支 `LoadLibraryA` 绝对路径、`GetProcAddress` 按名 6 API、`GetProcAddress(h, MAKEINTRESOURCEA(5))` 按 ordinal 取 `vmath_build_info`（`.def @5 NONAME`：按名必 NULL 为 A2 期望行为）、`FreeLibrary` 前经函数表注销 logger；Unix 分支不受影响（Linux 回归全绿）；`docs/baseline.md` 增 `LOAD_LIBRARY_SEARCH_*` 加固对照（PATH 劫持面 → 收敛搜索面，加固变体登记 F-09-08）；产物级断言（A1–A4）待 F-09-02 windows runner CI 实证。

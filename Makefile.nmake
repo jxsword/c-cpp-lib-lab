@@ -1,0 +1,82 @@
+# Makefile.nmake —— ② make 组·nmake 方言（F-05-02；PLAN 7.2 / 5.10：CRLF 单独文件，S9）
+# 独立于 Makefile（GNU make 方言），互不 include。
+# 一律 out-of-source：
+#   cd build\make\nmake\<tag>\<kind> && nmake /f <abs-src>\Makefile.nmake SRCDIR=<abs-src> VARIANT=x64_MD CFG=Release KIND=shared selftest
+# 覆盖 10 组合 × 双形态：msvc 8（x86/x64 × /MD /MT × Debug/Release）+ clang-cl 2。
+# /MD↔/MDd、/MT↔/MTd 随 CFG 联动；动态库 /DEF: 仅 KIND=shared。
+# 不调用 GitHub CLI（9.4 J7）。
+
+# ---- 可覆盖变量 ----
+SRCDIR  = .
+OUTDIR  = .
+VARIANT = x64_MD
+CFG     = Release
+KIND    = static
+# CC/LINK/LIB 由 vcvarsall 环境提供（cl/link/lib）；clang-cl 由调用方传 CC=clang-cl
+
+# ---- CRT 与机器随 VARIANT/CFG 联动 ----
+!IF "$(VARIANT)" == "x86_MD" || "$(VARIANT)" == "x64_MD"
+BASE_CRT = /MD
+!ELSE
+BASE_CRT = /MT
+!ENDIF
+
+!IF "$(CFG)" == "Debug"
+CRT      = $(BASE_CRT)d
+CLFLAGS  = /Zi /Od /D_DEBUG /DEBUG
+!ELSE
+CRT      = $(BASE_CRT)
+CLFLAGS  = /O2 /DNDEBUG
+!ENDIF
+
+# ---- 机器（x86 / x64）----
+!IF "$(VARIANT)" == "x86_MD" || "$(VARIANT)" == "x86_MT"
+MACHINE = /MACHINE:X86
+!ELSE
+MACHINE = /MACHINE:X64
+!ENDIF
+
+# ---- 形态分派（C9：静态 .o 不得复用动态 .o）----
+!IF "$(KIND)" == "shared"
+DEF_LIB = /DCALC_BUILD_DLL
+DEF_APP = /DCALC_USE_DLL
+LIBOUT  = $(OUTDIR)\vmath.dll
+!ELSE
+DEF_LIB = /DCALC_STATIC
+DEF_APP = /DCALC_STATIC
+LIBOUT  = $(OUTDIR)\vmath.lib
+!ENDIF
+
+INCLUDES = /I$(SRCDIR)\include
+
+all: lib app
+
+lib:
+	@if not exist $(OUTDIR) mkdir $(OUTDIR)
+	$(CC) /nologo $(CLFLAGS) $(CRT) $(DEF_LIB) $(INCLUDES) /c $(SRCDIR)\src\vmath_core.c /Fo$(OUTDIR)\vmath_core.obj
+	$(CC) /nologo $(CLFLAGS) $(CRT) $(DEF_LIB) $(INCLUDES) /c $(SRCDIR)\src\vmath_report.c /Fo$(OUTDIR)\vmath_report.obj
+!IF "$(KIND)" == "shared"
+	$(CC) /nologo $(CLFLAGS) $(CRT) $(DEF_LIB) /LD $(INCLUDES) $(SRCDIR)\src\vmath_core.c $(SRCDIR)\src\vmath_report.c /Fe$(LIBOUT) /link /DEF:$(SRCDIR)\def\vmath.def /IMPLIB:$(OUTDIR)\vmath.lib $(MACHINE)
+!ELSE
+	$(LIB) /nologo /OUT:$(OUTDIR)\vmath.lib $(OUTDIR)\vmath_core.obj $(OUTDIR)\vmath_report.obj
+!ENDIF
+
+app:
+	$(CC) /nologo $(CLFLAGS) $(CRT) $(DEF_APP) $(INCLUDES) /c $(SRCDIR)\src\calctool.c /Fo$(OUTDIR)\calctool.obj
+	$(LINK) /nologo $(OUTDIR)\calctool.obj $(OUTDIR)\vmath.lib /OUT:$(OUTDIR)\calctool.exe $(MACHINE)
+
+selftest: all
+	$(OUTDIR)\calctool.exe --self-test
+
+analyze: selftest
+	pwsh -NoProfile -ExecutionPolicy Bypass -File $(SRCDIR)\scripts\windows\static_analyze.ps1 -Tag win_nmake_$(VARIANT)_$(CFG) -Kind $(KIND) -Group make\nmake
+
+clean:
+	if exist $(OUTDIR)\vmath_core.obj del $(OUTDIR)\vmath_core.obj
+	if exist $(OUTDIR)\vmath_report.obj del $(OUTDIR)\vmath_report.obj
+	if exist $(OUTDIR)\calctool.obj del $(OUTDIR)\calctool.obj
+	if exist $(OUTDIR)\vmath.lib del $(OUTDIR)\vmath.lib
+	if exist $(OUTDIR)\vmath.dll del $(OUTDIR)\vmath.dll
+	if exist $(OUTDIR)\calctool.exe del $(OUTDIR)\calctool.exe
+
+.PHONY: all lib app selftest analyze clean

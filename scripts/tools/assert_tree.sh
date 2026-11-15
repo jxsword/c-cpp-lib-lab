@@ -71,6 +71,12 @@ case "$cmd" in
     bom)
         [ "$(head -c 3 "$1" | od -An -tx1 | tr -d ' \n')" = "efbbbf" ]
         ;;
+    # crlf <file> —— CRLF 换行（每行均以 CR 结尾）且无 BOM
+    crlf)
+        cr=$(tr -dc '\r' < "$1" | wc -c)
+        lf=$(tr -dc '\n' < "$1" | wc -c)
+        [ "$cr" -eq "$lf" ] && [ "$cr" -gt 0 ] && [ "$(head -c 3 "$1" | od -An -tx1 | tr -d ' \n')" != "efbbbf" ]
+        ;;
     # cardchecked <卡号> —— PLAN 3.1 中该卡已打勾
     cardchecked)
         grep -qE "^- \[x\] \`$1\`" docs/PLAN.md
@@ -79,6 +85,20 @@ case "$cmd" in
     filecount)
         n=$(find "$1" -name "$2" 2>/dev/null | wc -l)
         [ "$n" -eq "$3" ]
+        ;;
+    # makevar <名> <值> —— Makefile 的 ?= 变量默认值断言
+    makevar)
+        grep -qE "^$1[[:space:]]*\?= $2" Makefile
+        ;;
+    # makenovis <workdir> <srcdir> <variant> <cfg> —— make -n 静态干跑不含可见性旗标
+    makenovis)
+        w="$1"; s="$2"; v="$3"; c="$4"
+        n=$(cd "$w" && make -n -f "$s/Makefile" srcdir="$s" VARIANT="$v" CFG="$c" KIND=static 2>/dev/null | grep -cE 'fPIC|fvisibility')
+        [ "$n" -eq 0 ]
+        ;;
+    # xmlvalid <file> —— XML 可解析（python minidom）
+    xmlvalid)
+        python3 -c "import xml.dom.minidom, sys; xml.dom.minidom.parse(sys.argv[1])" "$1"
         ;;
     # rpath <elf> <子串> —— RUNPATH 值含该子串
     rpath)
