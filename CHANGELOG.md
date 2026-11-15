@@ -4,6 +4,8 @@
 
 ## v0.8.0 (in progress)
 
+- F-08-04 · 反例：STL 跨 CRT 与 ABI 面膨胀：新增 `tests/negative/stage3_stl_across_crt.cpp`（MSVC 专属复现样本：std::string/vector 成员类整体 dllexport）+ `run.bat`（runner 复现入口）；`run.sh` 对 MSVC 专属反例在其他 OS 输出 `SKIP` + exit 0（实测）；`reports/v0.8.0/abi-notes.md`——导出面实测对比（类直出 16 mangled 符号 vs 门面 8 C 名，减半且 ABI 稳定）与 CRT 崩溃机理表、修复结论 = F-08-03 门面。
+
 - F-08-03 · `extern "C"` 门面与纯虚接口：新增 `stage3/facade.h`（纯 C 可编译：opaque handle `stage3_vector_*` + C 工厂/`release()` + 函数指针表 vtable 契约；禁 STL/内联/模板/默认参数）与 `stage3/facade.cpp`（异常在 C++ 侧捕获转错误码、C 未修饰名导出、库侧释放）；实测：`gcc -fsyntax-only -xc` 过头文件、门面 4+ 个 `T stage3_*` C 名、C 消费者经 vtable 调用 `mean=2 count=2`（消费者 _Z 引用仅为 libstdc++ 运行时，stage3 类符号零泄漏）。
 
 - F-08-02 · `Statistics` 类与 3 源 / 2 头：新增 `stage3/include/stats.hpp`（组合 Vector，非继承）+ `stage3/src/stats.cpp`（min/max/mean/count）+ `stage3/src/main.cpp`（OOP 自测驱动）+ `stage3/README.md`（设计要点与 `_ITERATOR_DEBUG_LEVEL` 差异说明）；`Vector` 增 `push_back`（组合可用性）；恰好 3 `.cpp` + 2 `.hpp`；Debug/Release 双构建成功、`nm -C` 记录 Itanium mangling（MSVC `?*@@` 差异待 runner 对照）。
