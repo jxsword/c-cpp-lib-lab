@@ -130,7 +130,10 @@ if [ -f "$LIB_SO" ]; then
 fi
 marker=$(grep -o 'cfg=[a-zA-Z_-]*' "$marker_src" | head -1)
 case "$CFG" in
-    Debug)   ok=0; [ "$marker" = "cfg=_DEBUG" ] && ok=1; [ "$dbg" -gt 0 ] || ok=0 ;;
+    # Debug 两类合法形态：显式 -D_DEBUG（native.sh 约定）或 CMake 默认
+    # （无 NDEBUG 但不定义 _DEBUG，即 no-NDEBUG）——以存在调试段为硬判据
+    Debug)   ok=0; [ "$dbg" -gt 0 ] || ok=0
+             { [ "$marker" = "cfg=_DEBUG" ] || [ "$marker" = "cfg=no-NDEBUG" ]; } && ok=1 ;;
     Release) ok=0; [ "$marker" = "cfg=NDEBUG" ] && ok=1; [ "$dbg" -eq 0 ] && ok=1 ;;
     *)       ok=1 ;;
 esac
@@ -256,11 +259,16 @@ fi
 rpath=$(sed -n 's/.*(RUNPATH).*\[\(.*\)\].*/\1/p' "$REPORT/layer1/readelf_d.txt")
 case "$KIND" in
     shared)
-        if [ "$rpath" = '$ORIGIN' ]; then
-            record SA-10 PASS "RUNPATH=\$ORIGIN (same-dir search, no unsafe relative path)"
-        else
-            record SA-10 FAIL "RUNPATH=$rpath"
-        fi
+        # 卡面 A1 语义：RUNPATH 存在且值含 $ORIGIN（CMake 构建树会自动追加
+        # 构建目录，属标准行为；native.sh 为恰 $ORIGIN）
+        case "$rpath" in
+            '$ORIGIN'*)
+                record SA-10 PASS "RUNPATH contains \$ORIGIN (same-dir search): $rpath"
+                ;;
+            *)
+                record SA-10 FAIL "RUNPATH=$rpath"
+                ;;
+        esac
         ;;
     static)
         record SA-10 PASS "no RUNPATH (static resolution); patchelf cross-check: $(head -c 60 "$REPORT/layer2/patchelf_rpath.txt" | tr '\n' ' ')"

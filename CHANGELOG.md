@@ -9,6 +9,7 @@ M0 里程碑发布：仓库骨架与 git flow（main/develop 受保护、SSH ori
 ## v0.3.0 (in progress)
 
 - F-03-01 · CMakeLists 与 CTest：新增 `CMakeLists.txt`（`BUILD_SHARED_LIBS` 驱动四模式宏注入 generator expression、`POSITION_INDEPENDENT_CODE`、`VERSION/SOVERSION 1`、`WINDOWS_EXPORT_ALL_SYMBOLS OFF`（WIN32 挂 `.def`）、`BUILD_RPATH $ORIGIN` / `INSTALL_RPATH $ORIGIN/../lib`、`CMAKE_EXPORT_COMPILE_COMMANDS`）与 `tests/CMakeLists.txt`（`--self-test` 注册 CTest）；4 组合 × 2 形态 8 次 configure+build+ctest 全绿（x86 `-m32` / x64 `-m64`）。
+- F-03-02 · out-of-source / RPATH 断言与基线文档：`CMAKE_BUILD_RPATH_USE_ORIGIN` 使构建树 RUNPATH 为 `$ORIGIN`（并使 install 阶段 `file(RPATH_CHANGE)` 可靠改写为 `$ORIGIN/../lib`——实测 CMake 对绝对构建路径的改写会因格式不匹配报错）；`install(TARGETS …)` 落地；`analyze.sh` 以参数化 group 支持 `build/cmake/`（8 组合 SA 全绿，结论收齐 `reports/v0.3.0/`）；`docs/baseline.md` 补全 5.5–5.7（组合定义/客观约束/SA·RV 清单决策摘要）。
 
 ## v0.2.0 (2026-11-16)
 

@@ -80,6 +80,10 @@ case "$cmd" in
         n=$(find "$1" -name "$2" 2>/dev/null | wc -l)
         [ "$n" -eq "$3" ]
         ;;
+    # rpath <elf> <子串> —— RUNPATH 值含该子串
+    rpath)
+        readelf -d "$1" 2>/dev/null | grep RUNPATH | grep -q "$2"
+        ;;
     # sacount <报告md> <期望数> —— SA 结论矩阵行数（| SA-n | PASS/FAIL）
     sacount)
         n=$(grep -cE '^\| SA-[0-9]+ \| (PASS|FAIL)' "$1")

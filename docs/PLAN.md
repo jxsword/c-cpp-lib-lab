@@ -425,7 +425,7 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [x] `F-02-04` · 静态分析结论报告
 - [x] `F-02-05` · **运行输出采集 + 断言基线与验收入口（S8）**
 - [x] `F-03-01` · CMakeLists 与 CTest
-- [ ] `F-03-02` · out-of-source / RPATH 断言与基线文档
+- [x] `F-03-02` · out-of-source / RPATH 断言与基线文档
 - [ ] `F-04-01` · macOS 原生与静态分析脚本（bash）
 - [ ] `F-04-02` · Windows 原生脚本（**bat + ps1**）与 18 组合
 - [ ] `F-04-03` · Windows 动态加载（按名 + ordinal，**属 RV**）

@@ -10,6 +10,8 @@
 # expect 语法: exit0 | exit:<n> | regex:<ERE>
 # 不调用 GitHub CLI（9.4 J7）。
 set -u
+# noglob：args 分词不做文件名展开（glob 字面传给受限动作，由其内部引用处理）
+set -f
 
 if [ "$#" -ne 1 ]; then
     echo "usage: verify_card.sh <card-id>" >&2
