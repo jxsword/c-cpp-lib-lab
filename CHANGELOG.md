@@ -2,6 +2,10 @@
 
 本文件记录 c-cpp-lib-lab 的所有显著变更。每个里程碑发布对应一个 `v<semver>` 附注 tag（落在 `main`），版本语义见 CONTRIBUTING.md「版本与 tag 策略」一节。
 
+## v0.5.0 (in progress)
+
+- F-05-01 · GNU make（14 组合）：新增 `Makefile`（`?=` 变量 OS/TOOLSET/VARIANT/CFG/KIND/CC、`srcdir`/`outdir` 强制 out-of-source、`VIS` 仅 shared、`DEF_LIB/DEF_APP` 按 KIND 分派、动态库名按 OS 分派 `libvmath.so`/`libvmath.dylib`/`vmath.dll`、`selftest`/`analyze` 目标、msys2 加 `--out-implib`）；Linux 4 组合 × 2 形态 8/8 selftest 绿（A2 `make -n` 静态零 hidden/PIC；A3 `make analyze` 产报告；`-Wl,-rpath,'$$ORIGIN'`）；macOS gmake / msys2 GNU make 待 F-09-02 runner。
+
 ## v0.4.0 (2026-11-16)
 
 M4 里程碑发布：24 组合矩阵三 OS 脚本矩阵全就绪（macOS bash + Windows bat/ps1 + 三层分析扩展 + JSON schema 统一）；Linux 16 组合形态实跑全绿；macOS/Windows 产物级实证按计划委托 F-09-02 各 OS runner CI（执行口径如实分列，见 `reports/v0.4.0/SUMMARY.md`）。工具链映射表与 5 类跨平台坑固化。下一里程碑进入 make 组 32 组合（M5）。
