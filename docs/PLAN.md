@@ -437,7 +437,7 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [x] `F-05-04` · 32 组合横向对比
 - [x] `F-06-01` · CMake 三 OS 24 组合
 - [x] `F-06-02` · CTest 三 OS 与 out-of-source 断言
-- [ ] `F-07-01` · C++ 主程序
+- [x] `F-07-01` · C++ 主程序
 - [ ] `F-07-02` · 反例：去掉 `extern "C"`
 - [ ] `F-07-03` · `std::vector` 跨边界用例
 - [ ] `F-08-01` · `Vector` 类

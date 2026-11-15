@@ -1,0 +1,24 @@
+# tests/assertions/F-07-01.yml — F-07-01 断言基线
+# A3 三 OS：Linux 实跑；mac/win 随 F-09-02 runner（stage2 README 有三 OS 命令）。
+card: F-07-01
+checks:
+  - id: A1-link-and-run
+    action: run
+    args: bash -c g++ -Iinclude stage2/main.cpp -L/home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared -lvmath -Wl,-rpath,/home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared -o /tmp/vc-stage2-calcxx
+    expect: exit0
+  - id: A1b-run-correct-add
+    action: run
+    args: /tmp/vc-stage2-calcxx
+    expect: regex:add\(1\.5,2\.5\) = 4
+  - id: A2-unmangled-reference
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq U vmath_add$ /tmp/vc-stage2-calcxx
+    expect: exit0
+  - id: A4-readme-reuse-no-rebuild
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq 不重编库 stage2/README.md
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-07-01
+    expect: exit0
