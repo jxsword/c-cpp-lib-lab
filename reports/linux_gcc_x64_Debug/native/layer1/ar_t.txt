@@ -1,0 +1,2 @@
+vmath_core.o
+vmath_report.o
