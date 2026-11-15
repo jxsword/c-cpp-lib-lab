@@ -31,7 +31,7 @@ function Invoke-Logged {
     Add-Content -LiteralPath $log -Value $line
     $rest = @($flat | Select-Object -Skip 1)
     & $flat[0] @rest
-    if ($LASTEXITCODE -ne 0) { throw "command failed: $line" }
+    if ($LASTEXITCODE -ne 0) { throw "command failed (exit=$LASTEXITCODE): $line" }
 }
 
 # cfg → cl/gcc 旗标（7.1：Debug /Zi /Od /D_DEBUG + /DEBUG；Release /O2 /DNDEBUG）
@@ -71,6 +71,8 @@ try {
         # msys2 四环境（C8：每环境独立 gcc，产物目录含变体名不混链）
         $gcc = Get-Msys2ToolPrefix $Variant
         if (-not $gcc -or -not (Test-Path $gcc)) { Write-Fail "msys2 toolchain not found: $gcc"; exit 1 }
+        # 工具链 bin 前置 PATH：gcc 子进程（cc1/as/ld）与其运行库 DLL 按 PATH 解析
+        $env:PATH = "$((Split-Path -Parent $gcc));$env:PATH"
         # ar 与 gcc 同目录（toolchain 组自带 binutils）；异常时回退 PATH 解析
         $ar = Join-Path (Split-Path -Parent $gcc) 'ar.exe'
         if (-not (Test-Path $ar)) { $ar = 'ar' }
