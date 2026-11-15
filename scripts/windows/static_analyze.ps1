@@ -40,7 +40,10 @@ else {
     'dumpbin: not in PATH (vcvars environment required)' | Set-Content "$report\layer1\dumpbin_headers.txt"
 }
 Get-Content $bin -Encoding Byte -TotalCount 2 | Out-Null
-& strings.exe $bin 2>$null | Out-File "$report\layer1\strings.txt"
+$strings = Get-Command strings.exe -ErrorAction SilentlyContinue
+if ($strings) {
+    & strings.exe $bin 2>$null | Out-File "$report\layer1\strings.txt"
+}
 if (-not (Test-Path "$report\layer1\strings.txt")) { 'strings: not available' | Set-Content "$report\layer1\strings.txt" }
 
 # ② 第三方（llvm-readobj Rich Header；Dependencies CLI 交叉验证；缺失即记录）
@@ -83,10 +86,15 @@ elseif ($hdr -match '^dumpbin:') { Record 'SA-3' 'PASS' 'deferred: dumpbin unava
 else { Record 'SA-3' 'FAIL' "cfg=$cfg pdb=$([bool]$pdb)" }
 
 # SA-4 库形态
-$libOut = if ($Kind -eq 'static') { "$art\vmath.lib" } else { "$art\vmath.dll" }
-$libOff = if ($Kind -eq 'static') { "$art\vmath.dll" } else { "$art\vmath.lib" }
-if ((Test-Path $libOut) -and -not (Test-Path $libOff)) { Record 'SA-4' 'PASS' "$Kind artifact present: $libOut" }
-else { Record 'SA-4' 'FAIL' "kind=$Kind layout mismatch" }
+# SA-4 库形态（shared 的 vmath.lib 为 /IMPLIB import lib，属预期产物）
+if ($Kind -eq 'static') {
+    if ((Test-Path "$art\vmath.lib") -and -not (Test-Path "$art\vmath.dll")) { Record 'SA-4' 'PASS' "static: vmath.lib present, no vmath.dll" }
+    else { Record 'SA-4' 'FAIL' "static: vmath.lib=$((Test-Path "$art\vmath.lib")) vmath.dll=$((Test-Path "$art\vmath.dll"))" }
+}
+else {
+    if (Test-Path "$art\vmath.dll") { Record 'SA-4' 'PASS' "shared: vmath.dll present (import lib vmath.lib allowed)" }
+    else { Record 'SA-4' 'FAIL' "shared: vmath.dll missing" }
+}
 
 # SA-5 导出符号集（dumpbin /exports ordinal 1-6；msvc 无 errno、MinGW 有）
 $exports = if (Test-Path "$report\layer1\dumpbin_exports.txt") { Get-Content "$report\layer1\dumpbin_exports.txt" -Raw } else { '' }
