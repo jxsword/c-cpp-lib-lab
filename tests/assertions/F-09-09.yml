@@ -1,0 +1,27 @@
+# tests/assertions/F-09-09.yml — F-09-09 断言基线
+card: F-09-09
+checks:
+  - id: A1-report-ten-sections
+    action: script
+    args: ./scripts/tools/assert_tree.sh countmatch ^##[[:space:]][0-9]+\. docs/REPORT.md 11
+    expect: exit0
+  - id: A1b-report-evidence-refs
+    action: script
+    args: ./scripts/tools/assert_tree.sh countmatch reports/ docs/REPORT.md 10
+    expect: exit0
+  - id: A3-verify-all-green
+    action: run
+    args: ./scripts/verify_card.sh --all
+    expect: exit0
+  - id: A5-changelog-ten-tags
+    action: script
+    args: ./scripts/tools/assert_tree.sh countmatch ^##[[:space:]]v0\. CHANGELOG.md 9
+    expect: exit0
+  - id: A6-p3-p8-values
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq P3 组合内双形态 docs/REPORT.md
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-09-09
+    expect: exit0

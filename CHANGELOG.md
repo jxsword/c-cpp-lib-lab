@@ -2,7 +2,11 @@
 
 本文件记录 c-cpp-lib-lab 的所有显著变更。每个里程碑发布对应一个 `v<semver>` 附注 tag（落在 `main`），版本语义见 CONTRIBUTING.md「版本与 tag 策略」一节。
 
-## v1.0.0 (in progress)
+## v1.0.0 (2026-11-16) · Gate C
+
+M9 里程碑发布，**Gate C 达成，计划收官**：CI 工作流体系（16 文件：lint + _env/_combo 可复用 + 3 组 10 条可 dispatch 组合工作流 + analyze/run-output + all.yml 全量 80 编排）+ 打包三 OS（解压即用）+ 安全演示（劫持复现/加固对照/9 条防御清单）+ `docs/REPORT.md` 十章证据版总报告 + `verify_card --all` 43 卡基线全回归。Linux 侧全实跑；mac/win 产物级实证由各 OS runner dispatch 承接（R-09 收尾批量执行——默认分支硬约束）。对应 tag：v0.0.0…v0.8.0 共 9 个 + 本 v1.0.0 = 10 个里程碑 tag。
+
+- F-09-09 · 汇总报告与发布：新增 `docs/REPORT.md`（10 章节 + 待拍板项 P3–P8 取值，每节带 reports/ 实测证据）；README 终版（快速开始/80 矩阵/工作流索引）；`verify_card.sh` 增 `--all` 遍历回归入口（43 卡全 PASS）。
 
 - F-09-08 · 安全演示：新增 `scripts/{linux,macos,windows}/security_hijack_demo.*`（RV 通道）——Linux **before/after 双模式实测**（before：LD_LIBRARY_PATH 前置同名库劫持面复现 + `LD_LIBRARY_PATH 优先于 RUNPATH` 静态对照结论；after：SHA256 库哈希校验 + `env -i` 干净环境自测（等价 AT_SECURE）+ rpath `$ORIGIN` 固定确认）；`docs/baseline.md` 安全章节（攻击面 6 项 + 防御清单 9 条 + AT_SECURE/SIP/Hardened Runtime 特权规则）；mac/win 演示要点版随 runner。
 
