@@ -457,7 +457,7 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 **Release 卡（10）**
 
 - [x] `R-00` · 发布 `v0.0.0`
-- [ ] `R-01` · 发布 `v0.1.0`
+- [x] `R-01` · 发布 `v0.1.0`
 - [x] `R-02` · 发布 `v0.2.0`
 - [x] `R-03` · 发布 `v0.3.0`（Gate A）
 - [x] `R-04` · 发布 `v0.4.0`
