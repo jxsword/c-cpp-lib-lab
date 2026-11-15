@@ -6,7 +6,7 @@
 
 | # | 对象 | 平台 | key 模板 | path | 失效条件 |
 |---|---|---|---|---|---|
-| 1 | apt deb 包 | Linux | `apt-Linux-<hash(apt-packages.txt)>` | `/var/cache/apt/archives` | `.github/apt-packages.txt` 变更（K2） |
+| 1 | apt deb 包 | Linux | `apt-Linux-<hash(apt-packages.txt)>` | `/var/cache/apt/archives`（安装前后收敛属主，保证 tar 可读） | `.github/apt-packages.txt` 变更（K2） |
 | 2 | ccache | Linux | `cc-linux-<toolset>-<variant>-<cfg>-<kind>-<run_id>`，restore-keys 同前缀 | `~/.cache/ccache` | 每 run 新 key（run_id）；同组合前缀回退（K3） |
 | 3 | Homebrew 下载 | macOS | `brew-macOS-<arch>-<hash(brew-packages.txt)>` | `~/Library/Caches/Homebrew`、`~/.brew-cache` | `.github/brew-packages.txt` 变更（K2） |
 | 4 | ccache | macOS | 同 #2（`cc-macOS-…`） | `~/.cache/ccache` | 同 #2 |
@@ -23,7 +23,7 @@
 - **K3**：`restore-keys` 只允许同前缀回退（同一 OS+toolset+variant+cfg+kind 内），禁止跨 toolset/variant。
 - **K4**：跨 job 传构建产物用 `upload/download-artifact`，不用 cache。
 - **K5**：命中/未命中写入 `$GITHUB_STEP_SUMMARY`（action 末步）与卡回执（D11）。
-- **K7**：全部 `actions/cache` 步骤 `save-always: true`，失败 job 也保存已下载包。
+- **K7**：恢复/保存分离——`actions/cache/restore@v4` + `actions/cache/save@v4`，save 步骤均带 `if: always()`，失败 job 也保存已下载包。（上游 combined action 的 `save-always` 输入已弃用且声明不按预期工作，故不用。）
 - **K8**：缓存只读恢复；构建脚本不得写缓存目录以外路径。
 
 ## 命中率记录方式
