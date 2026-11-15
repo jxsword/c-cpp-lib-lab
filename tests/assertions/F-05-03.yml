@@ -4,8 +4,8 @@
 card: F-05-03
 checks:
   - id: A1-xml-valid
-    action: run
-    args: python3 -c import xml.dom.minidom; xml.dom.minidom.parse(vmath.vcxproj)
+    action: script
+    args: ./scripts/tools/assert_tree.sh xmlvalid vmath.vcxproj
     expect: exit0
   - id: A5-outdir-default-in-build
     action: script
