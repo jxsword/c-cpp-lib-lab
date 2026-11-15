@@ -1,13 +1,17 @@
-/* src/calctool.c —— CLI 主程序（F-01-05；实现依据 PLAN 5.4）
+/* src/calctool.c —— CLI 主程序（F-01-05 / F-02-02；实现依据 PLAN 5.4）
  *
- * 命令：add / dot / info / probe / --self-test；--dynamic 与 --bundle 为桩
- *（动态链接验证属 RV 通道 F-02-02/F-04-03，打包属 F-09-07——本里程碑返回明确提示）。
+ * 命令：add / dot / info / probe / --self-test / --dynamic；--bundle 为桩
+ *（打包属 F-09-07——本里程碑返回明确提示）。
+ * --dynamic 为 Unix 动态加载分支：**属运行验证（RV）通道（P5）**，仅在 RV step
+ * 运行，分析脚本不得引用本分支（5.8.4 约束的是分析过程，不是 RV 功能）。
  * 错误码约定与库对齐（取值见 src/vmath_core.c 头注释），只经 vmath_last_error()
  * 访问器读取，禁止触碰裸数据符号。probe 静态自述自身结构，不调用外部分析器。
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <dlfcn.h>
 
 #include "vmath.h"
 
@@ -51,7 +55,59 @@ static int parse_list(const char *s, double *out, size_t cap, size_t *len)
     return 0;
 }
 
-/* 把库错误码翻译为可读名（只经访问器读取） */
+/* ---- RV 通道：Unix 动态加载（F-02-02） ------------------------------------
+ * dlopen 绝对路径 → dlsym 按名取 6 个 API → 函数表结构体成员位置作为 ordinal
+ * 的跨平台替代（成员顺序与 def/vmath.def 的 ordinal 1–6 一一对应）→ 调用 →
+ * 卸载前 vmath_set_logger(NULL) 注销 → dlclose → 卸载后不持有库内地址。
+ * 本分支只在 RV step 运行；分析脚本不得引用（5.8.4 / P5 边界）。
+ */
+typedef struct {
+    double (*add)(double a, double b);                                /* ordinal 1 */
+    int (*dot)(const double *a, const double *b, size_t n, double *out); /* ordinal 2 */
+    void (*set_logger)(vmath_log_fn logger);                          /* ordinal 3 */
+    void (*free_mem)(void *p);                                        /* ordinal 4 */
+    const char *(*build_info)(void);                                  /* ordinal 5（def 中 NONAME，仅函数表可达） */
+    int (*last_error)(void);                                          /* ordinal 6 */
+} calc_api_table_;
+
+/* 解析库绝对路径：默认取可执行文件同目录的 libvmath.so.1；
+ * argv 提供的路径含 '/' 或以 .so 开头/结尾时优先采用（供 A4 传错路径测试） */
+static int dynamic_lib_path(int argc, char **argv, int *arg_base, char *path, size_t cap)
+{
+    char exe[4096];
+    char *slash;
+    ssize_t n;
+
+    *arg_base = 2; /* 默认：argv[2] 起为子命令 */
+    if (argc >= 3 && (strchr(argv[2], '/') != NULL ||
+                      strncmp(argv[2], "libvmath.so", 11) == 0)) {
+        if (strlen(argv[2]) >= cap) {
+            return -1;
+        }
+        snprintf(path, cap, "%s", argv[2]);
+        *arg_base = 3;
+        return 0;
+    }
+    n = readlink("/proc/self/exe", exe, sizeof exe - 1);
+    if (n <= 0) {
+        return -1;
+    }
+    exe[n] = '\0';
+    slash = strrchr(exe, '/');
+    if (slash == NULL) {
+        return -1;
+    }
+    *slash = '\0';
+    {
+        size_t dirlen = (size_t)(slash - exe);
+        if (dirlen + sizeof "/libvmath.so.1" > cap) {
+            return -1;
+        }
+        memcpy(path, exe, dirlen);
+        memcpy(path + dirlen, "/libvmath.so.1", sizeof "/libvmath.so.1");
+    }
+    return 0;
+}
 static const char *err_name(int err)
 {
     switch (err) {
@@ -189,11 +245,97 @@ static int cmd_self_test(void)
     return 0;
 }
 
-/* 桩：动态链接验证属 RV 通道（F-02-02 / F-04-03），本里程碑返回明确提示 */
-static int cmd_dynamic_stub(void)
+/* RV 通道命令：--dynamic [libpath] <command> [args]
+ * dlopen 绝对路径 → dlsym 按名 → 函数表（成员序=ordinal）→ 调用 →
+ * set_logger(NULL) 注销 → dlclose → 卸载后不持有库内地址。 */
+static int cmd_dynamic(int argc, char **argv)
 {
-    printf("--dynamic: reserved for the run-verification channel (F-02-02 / F-04-03), not built in this milestone\n");
-    return 2;
+    char path[4096];
+    void *handle = NULL;
+    calc_api_table_ api;
+    int arg_base = 0;
+    int rc;
+    const char *err;
+    char buf[128];
+
+    if (dynamic_lib_path(argc, argv, &arg_base, path, sizeof path) != 0) {
+        fprintf(stderr, "--dynamic: cannot resolve library path\n");
+        return 2;
+    }
+    if (arg_base >= argc) {
+        fprintf(stderr, "usage: calctool --dynamic [libpath] <command> [args]\n");
+        return 2;
+    }
+
+    handle = dlopen(path, RTLD_NOW | RTLD_LOCAL);
+    if (handle == NULL) {
+        err = dlerror();
+        fprintf(stderr, "--dynamic: cannot load '%s': %s\n", path, err != NULL ? err : "unknown");
+        return 2; /* A4：明确错误，不崩溃 */
+    }
+
+    /* dlsym 按名取 6 个 API，装入函数表（成员位置 = ordinal 跨平台替代） */
+    api.add         = (double (*)(double, double))dlsym(handle, "vmath_add");
+    api.dot         = (int (*)(const double *, const double *, size_t, double *))dlsym(handle, "vmath_dot");
+    api.set_logger  = (void (*)(vmath_log_fn))dlsym(handle, "vmath_set_logger");
+    api.free_mem    = (void (*)(void *))dlsym(handle, "vmath_free");
+    api.build_info  = (const char *(*)(void))dlsym(handle, "vmath_build_info");
+    api.last_error  = (int (*)(void))dlsym(handle, "vmath_last_error");
+    if (api.add == NULL || api.dot == NULL || api.set_logger == NULL ||
+        api.free_mem == NULL || api.build_info == NULL || api.last_error == NULL) {
+        err = dlerror();
+        fprintf(stderr, "--dynamic: dlsym incomplete: %s\n", err != NULL ? err : "symbol missing");
+        (void)dlclose(handle);
+        return 2;
+    }
+    printf("--dynamic: loaded %s, 6/6 API symbols resolved\n", path);
+
+    /* 回调注册经函数表完成（加载副本自己的 logger 槽位） */
+    api.set_logger(cli_log);
+
+    rc = 0;
+    if (strcmp(argv[arg_base], "add") == 0 && arg_base + 2 < argc) {
+        double a = strtod(argv[arg_base + 1], NULL);
+        double b = strtod(argv[arg_base + 2], NULL);
+        (void)snprintf(buf, sizeof buf, "add(%s,%s) = %g", argv[arg_base + 1],
+                       argv[arg_base + 2], api.add(a, b));
+        cli_log(buf); /* 输出格式与静态链接路径一致（A1） */
+    } else if (strcmp(argv[arg_base], "info") == 0) {
+        printf("%s\n", api.build_info());
+    } else if (strcmp(argv[arg_base], "dot") == 0 && arg_base + 2 < argc) {
+        double xs[CALC_LIST_CAP_];
+        double ys[CALC_LIST_CAP_];
+        size_t nx = 0;
+        size_t ny = 0;
+        double out = 0.0;
+        if (parse_list(argv[arg_base + 1], xs, CALC_LIST_CAP_, &nx) != 0 ||
+            parse_list(argv[arg_base + 2], ys, CALC_LIST_CAP_, &ny) != 0 ||
+            nx != ny || nx == 0) {
+            fprintf(stderr, "--dynamic dot: invalid or mismatched lists\n");
+            rc = 2;
+        } else if (api.dot(xs, ys, nx, &out) != 0) {
+            fprintf(stderr, "--dynamic dot: failed, error=%s\n", err_name(api.last_error()));
+            rc = 2;
+        } else {
+            (void)snprintf(buf, sizeof buf, "dot(len=%zu) = %g", nx, out);
+            cli_log(buf);
+        }
+    } else {
+        fprintf(stderr, "--dynamic: unsupported command '%s' (add/dot/info)\n", argv[arg_base]);
+        rc = 2;
+    }
+
+    /* 卸载前注销回调，dlclose 后不持有任何库内地址 */
+    api.set_logger(0);
+    if (dlclose(handle) != 0) {
+        err = dlerror();
+        fprintf(stderr, "--dynamic: dlclose failed: %s\n", err != NULL ? err : "unknown");
+        rc = 2;
+    } else {
+        printf("--dynamic: library unloaded\n");
+    }
+    memset(&api, 0, sizeof api);
+    return rc;
 }
 
 /* 桩：打包发布属 F-09-07 */
@@ -243,7 +385,7 @@ int main(int argc, char **argv)
         return cmd_self_test();
     }
     if (strcmp(argv[1], "--dynamic") == 0) {
-        return cmd_dynamic_stub();
+        return cmd_dynamic(argc, argv);
     }
     if (strcmp(argv[1], "--bundle") == 0) {
         return cmd_bundle_stub();

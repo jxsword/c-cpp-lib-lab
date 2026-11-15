@@ -1,0 +1,27 @@
+# tests/assertions/F-02-05.yml — F-02-05 自身断言基线
+card: F-02-05
+checks:
+  - id: A1-all-cards-have-yml
+    action: script
+    args: ./scripts/tools/assert_tree.sh ymlpresent F-00-01 F-00-02 F-00-03 F-00-04 F-01-01 F-01-02 F-01-03 F-01-04 F-01-05 F-01-06 F-02-01 F-02-02 F-02-03 F-02-04 F-02-05
+    expect: exit0
+  - id: A4-run-output-selftest
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq self-test:.*ALL.OK reports/linux_gcc_x64_Release/run/linux_gcc_x64_Release_shared.txt
+    expect: exit0
+  - id: A4-run-output-exitcode
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq exit.code:.0 reports/linux_gcc_x64_Release/run/linux_gcc_x64_Release_shared.txt
+    expect: exit0
+  - id: A5-no-target-exec-in-analyze
+    action: script
+    args: ./scripts/tools/assert_tree.sh notgrep --self-test scripts/linux/analyze.sh
+    expect: exit0
+  - id: A5b-no-target-exec-in-engine
+    action: script
+    args: ./scripts/tools/assert_tree.sh notgrep --self-test scripts/linux/static_analyze.sh
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-02-05
+    expect: exit0

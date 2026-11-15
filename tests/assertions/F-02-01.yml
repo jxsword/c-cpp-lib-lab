@@ -1,0 +1,35 @@
+# tests/assertions/F-02-01.yml — F-02-01 断言基线（F-02-05 起机器可执行；原始输出见卡回执 PR #30）
+card: F-02-01
+checks:
+  - id: A1-eight-product-dirs
+    action: script
+    args: ./scripts/tools/assert_tree.sh countdirs build/native 2 8
+    expect: exit0
+  - id: A1-eight-calctools
+    action: script
+    args: ./scripts/tools/assert_tree.sh count build/native calctool 8
+    expect: exit0
+  - id: A2-selftest-x64-static
+    action: script
+    args: ./scripts/tools/assert_tree.sh selftest build/native/linux_gcc_x64_Release/static/calctool
+    expect: exit0
+  - id: A5-x86-elf32
+    action: script
+    args: ./scripts/tools/assert_tree.sh elfclass build/native/linux_gcc_x86_Debug/static/calctool 32
+    expect: exit0
+  - id: A5-x64-elf64
+    action: script
+    args: ./scripts/tools/assert_tree.sh elfclass build/native/linux_gcc_x64_Debug/static/calctool 64
+    expect: exit0
+  - id: A6-shared-needed
+    action: script
+    args: ./scripts/tools/assert_tree.sh needed build/native/linux_gcc_x64_Release/shared/calctool libvmath.so.1
+    expect: exit0
+  - id: A6-static-no-libvmath
+    action: script
+    args: ./scripts/tools/assert_tree.sh notneeded build/native/linux_gcc_x64_Release/static/calctool libvmath
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-02-01
+    expect: exit0

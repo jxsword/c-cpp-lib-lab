@@ -1,0 +1,19 @@
+# tests/assertions/F-00-02.yml — F-00-02 断言基线（F-02-05 起机器可执行；原始输出见卡回执 PR #3 与试探 PR #4–#10）
+card: F-00-02
+checks:
+  - id: A1-lint-yml-exists
+    action: exists
+    args: .github/workflows/lint.yml
+    expect: exit0
+  - id: A4-no-compile-jobs
+    action: script
+    args: ./scripts/tools/assert_tree.sh notgrep gcc|make|msbuild|cmake .github/workflows/lint.yml
+    expect: exit0
+  - id: A5-no-gh-in-scripts
+    action: script
+    args: ./scripts/tools/assert_tree.sh notgrep '\bgh\b' scripts/
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-00-02
+    expect: exit0

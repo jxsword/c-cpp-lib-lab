@@ -1,0 +1,27 @@
+# tests/assertions/F-01-01.yml — F-01-01 断言基线（F-02-05 起机器可执行；原始输出见卡回执 PR #22）
+card: F-01-01
+checks:
+  - id: A1-syntax-c
+    action: run
+    args: gcc -fsyntax-only -Iinclude -x c include/calc_export.h
+    expect: exit0
+  - id: A1-syntax-cpp
+    action: run
+    args: g++ -fsyntax-only -Iinclude -x c++ include/calc_export.h
+    expect: exit0
+  - id: A1-syntax-c-static
+    action: run
+    args: gcc -fsyntax-only -Iinclude -DCALC_STATIC -x c include/calc_export.h
+    expect: exit0
+  - id: A1-syntax-c-build-dll
+    action: run
+    args: gcc -fsyntax-only -Iinclude -DCALC_BUILD_DLL -x c include/calc_export.h
+    expect: exit0
+  - id: A1-syntax-c-no-lib
+    action: run
+    args: gcc -fsyntax-only -Iinclude -DCALC_NO_LIB -x c include/calc_export.h
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-01-01
+    expect: exit0

@@ -1,0 +1,23 @@
+# tests/assertions/F-01-03.yml — F-01-03 断言基线（F-02-05 起机器可执行；原始输出见卡回执 PR #24）
+card: F-01-03
+checks:
+  - id: A1-zero-warning
+    action: run
+    args: gcc -c -Wall -Wextra -Werror -Iinclude -DCALC_NO_LIB src/vmath_core.c -o /tmp/vc-verify-core.o
+    expect: exit0
+  - id: A2-normalize-local
+    action: script
+    args: ./scripts/tools/assert_tree.sh nmsym /tmp/vc-verify-core.o normalize_ t
+    expect: exit0
+  - id: A2-three-api-globals
+    action: script
+    args: ./scripts/tools/assert_tree.sh nmglobal /tmp/vc-verify-core.o T vmath_(add|dot|last_error)$ 3
+    expect: exit0
+  - id: A2-errno-global
+    action: script
+    args: ./scripts/tools/assert_tree.sh nmglobal /tmp/vc-verify-core.o B vmath_errno$ 1
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-01-03
+    expect: exit0
