@@ -10,8 +10,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <dlfcn.h>
+#if defined(_WIN32)
+#  include <windows.h>
+#else
+#  include <unistd.h>
+#  include <dlfcn.h>
+#endif
 
 #include "vmath.h"
 
@@ -72,6 +76,7 @@ typedef struct {
 
 /* 解析库绝对路径：默认取可执行文件同目录的 libvmath.so.1；
  * argv 提供的路径含 '/' 或以 .so 开头/结尾时优先采用（供 A4 传错路径测试） */
+#if !defined(_WIN32)
 static int dynamic_lib_path(int argc, char **argv, int *arg_base, char *path, size_t cap)
 {
     char exe[4096];
@@ -108,6 +113,144 @@ static int dynamic_lib_path(int argc, char **argv, int *arg_base, char *path, si
     }
     return 0;
 }
+
+#endif /* !_WIN32 */
+
+/* ---- RV 通道：Windows 动态加载（F-04-03） ----
+ * LoadLibrary 绝对路径；GetProcAddress 按名 6 API；MAKEINTRESOURCEA(5) 按
+ * ordinal 取 vmath_build_info（.def @5 NONAME，按名必 NULL——A2 期望行为）；
+ * FreeLibrary 前经函数表注销 logger；卸载后不持有库内地址。 */
+#if defined(_WIN32)
+static const char *err_name(int err);
+static int win_lib_path(int argc, char **argv, int *arg_base, char *path, size_t cap)
+{
+    char exe[MAX_PATH];
+    char *slash;
+    DWORD n;
+
+    *arg_base = 2;
+    if (argc >= 3 && (strchr(argv[2], '\\') != NULL || strchr(argv[2], '/') != NULL)) {
+        if (strlen(argv[2]) >= cap) {
+            return -1;
+        }
+        snprintf(path, cap, "%s", argv[2]);
+        *arg_base = 3;
+        return 0;
+    }
+    n = GetModuleFileNameA(NULL, exe, MAX_PATH);
+    if (n == 0 || n >= MAX_PATH) {
+        return -1;
+    }
+    slash = strrchr(exe, '\\');
+    if (slash == NULL) {
+        return -1;
+    }
+    *slash = '\0';
+    {
+        size_t dirlen = (size_t)(slash - exe);
+        if (dirlen + sizeof "\\vmath.dll" > cap) {
+            return -1;
+        }
+        memcpy(path, exe, dirlen);
+        memcpy(path + dirlen, "\\vmath.dll", sizeof "\\vmath.dll");
+    }
+    return 0;
+}
+
+static int cmd_dynamic_win(int argc, char **argv)
+{
+    char path[MAX_PATH];
+    HMODULE handle = NULL;
+    calc_api_table_ api;
+    int arg_base = 0;
+    int rc = 0;
+    char buf[128];
+
+    if (win_lib_path(argc, argv, &arg_base, path, sizeof path) != 0) {
+        fprintf(stderr, "--dynamic: cannot resolve library path\n");
+        return 2;
+    }
+    if (arg_base >= argc) {
+        fprintf(stderr, "usage: calctool --dynamic [libpath] <command> [args]\n");
+        return 2;
+    }
+    handle = LoadLibraryA(path);
+    if (handle == NULL) {
+        fprintf(stderr, "--dynamic: cannot load '%s' (GetLastError=%lu)\n", path, (unsigned long)GetLastError());
+        return 2;
+    }
+    /* 按名取 6 API（A1）；@5 NONAME 使按名取 build_info 必为 NULL（A2 期望） */
+    api.add        = (double (*)(double, double))(void *)GetProcAddress(handle, "vmath_add");
+    api.dot        = (int (*)(const double *, const double *, size_t, double *))(void *)GetProcAddress(handle, "vmath_dot");
+    api.set_logger = (void (*)(vmath_log_fn))(void *)GetProcAddress(handle, "vmath_set_logger");
+    api.free_mem   = (void (*)(void *))(void *)GetProcAddress(handle, "vmath_free");
+    api.build_info = (const char *(*)(void))(void *)GetProcAddress(handle, "vmath_build_info");
+    api.last_error = (int (*)(void))(void *)GetProcAddress(handle, "vmath_last_error");
+    if (api.add == NULL || api.dot == NULL || api.set_logger == NULL ||
+        api.free_mem == NULL || api.last_error == NULL) {
+        fprintf(stderr, "--dynamic: named lookup incomplete\n");
+        (void)FreeLibrary(handle);
+        return 2;
+    }
+    printf("--dynamic: loaded %s, named lookups 5/6 (+build_info by ordinal below)\n", path);
+    if (api.build_info != NULL) {
+        fprintf(stderr, "--dynamic: UNEXPECTED: NONAME symbol resolved by name (A2 violated)\n");
+        rc = 2;
+    } else {
+        printf("--dynamic: GetProcAddress(h, \"vmath_build_info\") == NULL as expected (NONAME)\n");
+    }
+    /* ordinal 5 取 build_info（A3；NONAME 只能按 ordinal 寻址） */
+    api.build_info = (const char *(*)(void))(void *)GetProcAddress(handle, MAKEINTRESOURCEA(5));
+    if (api.build_info == NULL) {
+        fprintf(stderr, "--dynamic: ordinal-5 lookup FAILED (A3 violated)\n");
+        (void)FreeLibrary(handle);
+        return 2;
+    }
+    printf("--dynamic: GetProcAddress(h, MAKEINTRESOURCEA(5)) resolved vmath_build_info\n");
+
+    api.set_logger(cli_log);
+    if (strcmp(argv[arg_base], "add") == 0 && arg_base + 2 < argc) {
+        double a = strtod(argv[arg_base + 1], NULL);
+        double b = strtod(argv[arg_base + 2], NULL);
+        (void)snprintf(buf, sizeof buf, "add(%s,%s) = %g", argv[arg_base + 1], argv[arg_base + 2], api.add(a, b));
+        cli_log(buf);
+    } else if (strcmp(argv[arg_base], "info") == 0) {
+        printf("%s\n", api.build_info());
+    } else if (strcmp(argv[arg_base], "dot") == 0 && arg_base + 2 < argc) {
+        double xs[CALC_LIST_CAP_];
+        double ys[CALC_LIST_CAP_];
+        size_t nx = 0;
+        size_t ny = 0;
+        double out = 0.0;
+        if (parse_list(argv[arg_base + 1], xs, CALC_LIST_CAP_, &nx) != 0 ||
+            parse_list(argv[arg_base + 2], ys, CALC_LIST_CAP_, &ny) != 0 ||
+            nx != ny || nx == 0) {
+            fprintf(stderr, "--dynamic dot: invalid or mismatched lists\n");
+            rc = 2;
+        } else if (api.dot(xs, ys, nx, &out) != 0) {
+            fprintf(stderr, "--dynamic dot: failed, error=%s\n", err_name(api.last_error()));
+            rc = 2;
+        } else {
+            (void)snprintf(buf, sizeof buf, "dot(len=%zu) = %g", nx, out);
+            cli_log(buf);
+        }
+    } else {
+        fprintf(stderr, "--dynamic: unsupported command '%s' (add/dot/info)\n", argv[arg_base]);
+        rc = 2;
+    }
+    /* FreeLibrary 前注销 logger（A4：卸载后无悬空调用） */
+    api.set_logger(0);
+    if (!FreeLibrary(handle)) {
+        fprintf(stderr, "--dynamic: FreeLibrary failed (GetLastError=%lu)\n", (unsigned long)GetLastError());
+        rc = 2;
+    } else {
+        printf("--dynamic: library unloaded (no dangling calls)\n");
+    }
+    memset(&api, 0, sizeof api);
+    return rc;
+}
+#endif /* _WIN32 */
+
 static const char *err_name(int err)
 {
     switch (err) {
@@ -385,7 +528,11 @@ int main(int argc, char **argv)
         return cmd_self_test();
     }
     if (strcmp(argv[1], "--dynamic") == 0) {
+#if defined(_WIN32)
+        return cmd_dynamic_win(argc, argv);
+#else
         return cmd_dynamic(argc, argv);
+#endif
     }
     if (strcmp(argv[1], "--bundle") == 0) {
         return cmd_bundle_stub();
