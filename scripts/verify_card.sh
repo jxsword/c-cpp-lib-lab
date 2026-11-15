@@ -14,11 +14,33 @@ set -u
 set -f
 
 if [ "$#" -ne 1 ]; then
-    echo "usage: verify_card.sh <card-id>" >&2
+    echo "usage: verify_card.sh <card-id|--all>" >&2
     exit 2
 fi
 CARD="$1"
 YML="$(cd "$(dirname "$0")/.." && pwd)/tests/assertions/$CARD.yml"
+
+# --all：遍历全部断言基线逐卡回归（F-09-09 A3 入口）
+if [ "$CARD" = "--all" ]; then
+    total_fail=0
+    total=0
+    # set -f（noglob）下用 find 展开
+    while IFS= read -r y; do
+        c=$(basename "$y" .yml)
+        total=$((total + 1))
+        out=$(bash "$0" "$c" < /dev/null 2>&1)
+        rc=$?
+        line=$(printf '%s\n' "$out" | grep -E 'verify_card:' | tail -1)
+        printf '%s\n' "$line"
+        [ "$rc" -eq 0 ] || total_fail=$((total_fail + 1))
+    done < <(find "$(cd "$(dirname "$0")/.." && pwd)/tests/assertions" -name 'F-*.yml' ! -name 'F-09-09.yml' | sort)
+    if [ "$total_fail" -eq 0 ]; then
+        echo "--all: $total card baselines, all PASS"
+        exit 0
+    fi
+    echo "--all: $total_fail/$total card(s) FAILED"
+    exit 1
+fi
 
 if [ ! -f "$YML" ]; then
     echo "FAIL: assertion file not found: $YML" >&2
