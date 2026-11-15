@@ -20,6 +20,7 @@ case "$KIND" in static|shared) ;; *) calc_log_fail "kind must be static|shared";
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 CC=gcc
+CFLAGS="-Wall -Wextra -Werror"
 TAG=$(calc_make_tag linux gcc "$ARCH" "$CFG")
 OUT="$ROOT/build/native/$TAG/$KIND"
 mkdir -p "$OUT"
@@ -45,19 +46,19 @@ rc=0
 
 if [ "$KIND" = "static" ]; then
     # 静态：库对象与消费端均以 -DCALC_STATIC 重编（C9）
-    run_cmd "$CC" $CFG_FLAGS $ARCH_FLAGS -DCALC_STATIC -I"$ROOT/include" -c "$ROOT/src/vmath_core.c" -o "$OUT/vmath_core.o" && \
-    run_cmd "$CC" $CFG_FLAGS $ARCH_FLAGS -DCALC_STATIC -I"$ROOT/include" -c "$ROOT/src/vmath_report.c" -o "$OUT/vmath_report.o" && \
-    run_cmd "$CC" $CFG_FLAGS $ARCH_FLAGS -DCALC_STATIC -I"$ROOT/include" -c "$ROOT/src/calctool.c" -o "$OUT/calctool.o" && \
+    run_cmd "$CC" $CFLAGS $CFG_FLAGS $ARCH_FLAGS -DCALC_STATIC -I"$ROOT/include" -c "$ROOT/src/vmath_core.c" -o "$OUT/vmath_core.o" && \
+    run_cmd "$CC" $CFLAGS $CFG_FLAGS $ARCH_FLAGS -DCALC_STATIC -I"$ROOT/include" -c "$ROOT/src/vmath_report.c" -o "$OUT/vmath_report.o" && \
+    run_cmd "$CC" $CFLAGS $CFG_FLAGS $ARCH_FLAGS -DCALC_STATIC -I"$ROOT/include" -c "$ROOT/src/calctool.c" -o "$OUT/calctool.o" && \
     run_cmd ar rcs "$OUT/libvmath.a" "$OUT/vmath_core.o" "$OUT/vmath_report.o" && \
     run_cmd "$CC" $ARCH_FLAGS "$OUT/calctool.o" -L"$OUT" -lvmath -lm -o "$OUT/calctool" || rc=1
 else
     # 动态：库侧 BUILD_DLL + fPIC + hidden，soname 三级链接；
     # 消费端 USE_DLL，rpath=$ORIGIN，-ldl 预留 RV 动态加载通道
-    run_cmd "$CC" $CFG_FLAGS $ARCH_FLAGS -DCALC_BUILD_DLL -fPIC -fvisibility=hidden -I"$ROOT/include" -c "$ROOT/src/vmath_core.c" -o "$OUT/vmath_core.o" && \
-    run_cmd "$CC" $CFG_FLAGS $ARCH_FLAGS -DCALC_BUILD_DLL -fPIC -fvisibility=hidden -I"$ROOT/include" -c "$ROOT/src/vmath_report.c" -o "$OUT/vmath_report.o" && \
+    run_cmd "$CC" $CFLAGS $CFG_FLAGS $ARCH_FLAGS -DCALC_BUILD_DLL -fPIC -fvisibility=hidden -I"$ROOT/include" -c "$ROOT/src/vmath_core.c" -o "$OUT/vmath_core.o" && \
+    run_cmd "$CC" $CFLAGS $CFG_FLAGS $ARCH_FLAGS -DCALC_BUILD_DLL -fPIC -fvisibility=hidden -I"$ROOT/include" -c "$ROOT/src/vmath_report.c" -o "$OUT/vmath_report.o" && \
     run_cmd "$CC" $ARCH_FLAGS -shared -Wl,-soname,libvmath.so.1 -Wl,--enable-new-dtags "$OUT/vmath_core.o" "$OUT/vmath_report.o" -lm -o "$OUT/libvmath.so.1.0.0" && \
     calc_linux_soname_links "$OUT" && \
-    run_cmd "$CC" $CFG_FLAGS $ARCH_FLAGS -DCALC_USE_DLL -I"$ROOT/include" -c "$ROOT/src/calctool.c" -o "$OUT/calctool.o" && \
+    run_cmd "$CC" $CFLAGS $CFG_FLAGS $ARCH_FLAGS -DCALC_USE_DLL -I"$ROOT/include" -c "$ROOT/src/calctool.c" -o "$OUT/calctool.o" && \
     run_cmd "$CC" $ARCH_FLAGS "$OUT/calctool.o" -L"$OUT" -lvmath -Wl,-rpath,'$ORIGIN' -ldl -lm -o "$OUT/calctool" || rc=1
 fi
 
