@@ -234,7 +234,8 @@ case "$KIND" in
         fi
         ;;
     static)
-        if ! grep -q 'libvmath' <(needed=$(readelf -d "$BIN" | sed -n 's/.*(NEEDED).*\[\(.*\)\].*/\1/p'; printf '%s\n' "$needed")); then
+        static_needed=$(readelf -d "$BIN" | sed -n 's/.*(NEEDED).*\[\(.*\)\].*/\1/p')
+        if ! printf '%s\n' "$static_needed" | grep -q 'libvmath'; then
             record SA-7 PASS "no libvmath dependency (statically resolved); system deps resolved=$([ "$unresolved" = 0 ] && echo all || echo "$unresolved")"
         else
             record SA-7 FAIL "static binary unexpectedly depends on libvmath"
@@ -244,7 +245,7 @@ esac
 
 # SA-9 CRT/运行库模式（Linux：glibc 动态；MSVC CRT 维度 ELF 上 N/A）
 if grep -q 'libc.so.6' "$REPORT/layer1/readelf_d.txt"; then
-    record SA-9 PASS "glibc dynamic (libc.so.6); MSVC CRT dimension N/A on ELF"
+    record SA-9 PASS "glibc dynamic (libc.so.6); MSVC CRT dimension not applicable on ELF"
 else
     record SA-9 FAIL "libc.so.6 not found in dynamic section"
 fi

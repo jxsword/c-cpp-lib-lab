@@ -12,7 +12,7 @@
     {"id": "SA-6", "result": "PASS", "evidence": "normalize_ is local (t) in static archive"},
     {"id": "SA-8", "result": "PASS", "evidence": "deps tree: deps/linux_gcc_x64_Debug_static.{json,md} (BFS, realpath dedup, JSON valid)"},
     {"id": "SA-7", "result": "PASS", "evidence": "no libvmath dependency (statically resolved); system deps resolved=all"},
-    {"id": "SA-9", "result": "PASS", "evidence": "glibc dynamic (libc.so.6); MSVC CRT dimension N/A on ELF"},
+    {"id": "SA-9", "result": "PASS", "evidence": "glibc dynamic (libc.so.6); MSVC CRT dimension not applicable on ELF"},
     {"id": "SA-10", "result": "PASS", "evidence": "no RUNPATH (static resolution); patchelf cross-check: == /home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_D"}
   ]
 }
