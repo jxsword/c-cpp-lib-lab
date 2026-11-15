@@ -1,0 +1,35 @@
+# tests/assertions/F-08-02.yml — F-08-02 断言基线
+card: F-08-02
+checks:
+  - id: A1-file-counts
+    action: script
+    args: ./scripts/tools/assert_tree.sh count stage3/include *.hpp 2
+    expect: exit0
+  - id: A1b-src-counts
+    action: script
+    args: ./scripts/tools/assert_tree.sh count stage3/src *.cpp 3
+    expect: exit0
+  - id: A2-selftest-default-build
+    action: run
+    args: bash -c g++ -std=c++17 -Istage3/include stage3/src/*.cpp -o /tmp/vc-stage3-c
+    expect: exit0
+  - id: A2b-selftest-run
+    action: run
+    args: /tmp/vc-stage3-c --self-test
+    expect: regex:ALL.OK
+  - id: A3-debug-build
+    action: run
+    args: g++ -std=c++17 -g -O0 -D_DEBUG -Istage3/include stage3/src/*.cpp -o /tmp/vc-stage3-dbg
+    expect: exit0
+  - id: A3b-release-build
+    action: run
+    args: g++ -std=c++17 -O2 -DNDEBUG -Istage3/include stage3/src/*.cpp -o /tmp/vc-stage3-rel
+    expect: exit0
+  - id: A4-mangling-record
+    action: script
+    args: ./scripts/tools/assert_tree.sh nmclass /tmp/vc-stage3-rel stage3::Statistics
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-08-02
+    expect: exit0

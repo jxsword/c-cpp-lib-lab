@@ -17,6 +17,11 @@ const double &Vector::at(std::size_t index) const
     return data_.at(index);
 }
 
+void Vector::push_back(double value)
+{
+    data_.push_back(value);
+}
+
 void Vector::normalize()
 {
     // 归一化：所有元素缩放到 [0,1]（最小值归零）；空容器为 no-op
