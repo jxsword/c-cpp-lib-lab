@@ -11,6 +11,7 @@ M0 里程碑发布：仓库骨架与 git flow（main/develop 受保护、SSH ori
 - F-01-01 · 导出宏头：新增 `include/calc_export.h`——①平台判定 ②`CALC_EXTERN_C_BEGIN/END` ③`CALC_STATIC`/`CALC_BUILD_DLL`/`CALC_USE_DLL`/`CALC_NO_LIB` 四模式分派 ④32 位 Windows `CALC_CALL=__cdecl`（禁 `__stdcall`，保证 `.def` 未修饰名可寻址）⑤不导出任何数据符号 ⑥`CALC_DEPRECATED(msg)`。
 - F-01-02 · 公共 API 与 `.def`：新增 `include/vmath.h`（恰 6 个导出函数 + `vmath_log_fn` 回调类型 + 裸数据符号教学对照，`extern "C"` 全包裹）与 `def/vmath.def`（ordinal 固定 1–6、`@5 NONAME`、不含错误码裸符号与任何数据符号声明）。
 - F-01-03 · 库核心：新增 `src/vmath_core.c`——`vmath_add`（内部 `normalize_` 实际引用）、`vmath_dot`（n==0 与空指针校验，错误码经 `vmath_last_error()` 访问器）、裸符号 `vmath_errno` 教学对照；`-Wall -Wextra -Werror` 零警告。
+- F-01-04 · 库报告与资源：新增 `src/vmath_report.c`——`vmath_build_info` 静态常量串（位数/数据模型/宽度/编译器/配置/迭代器调试层/库形态/CRT 全字段编译期进 `.rodata`，配 sizeof 静态断言互锁）、`vmath_free` 库侧 CRT 内释放、`vmath_set_logger`（可传 NULL 注销）。
 
 - F-00-01 · 仓库与 git flow 初始化：建立 `main`/`develop` 长期分支并以 SSH 关联 `origin`；首次推送成功后为 `main` 设置分支保护（禁止直接 push、只接受 PR、禁止强制推送与删除）；`docs/PLAN.md`（v1.3）作为唯一权威计划原样纳入首个提交；新增 `.gitignore`（out-of-source 全量忽略）、`.gitattributes` 初版、MIT `LICENSE`、`README.md` 与 `CONTRIBUTING.md` 初版；建立计划 4.1 占位目录骨架。
 - F-00-02 · lint 门禁：新增 `.github/workflows/lint.yml`（`pull_request` → `develop`/`main`），检查行尾空白、UTF-8、`*.ps1` UTF-8 BOM、`*.bat` CRLF 且无 BOM、`*.sh` LF 且无 BOM、禁止二进制入库与跟踪被忽略路径、`5.8.4` 禁用调用关键字扫描（`FORBIDDEN:` 注释白名单）、`docs/PLAN.md` 3.1 卡号格式与 Z1 越界章节引用、`scripts/` 内 `gh` 调用（J7 / K22）；不编译、不跑矩阵。
