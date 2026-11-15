@@ -4,6 +4,8 @@
 
 ## v0.7.0 (in progress)
 
+- F-07-02 · 反例：去掉 `extern "C"`：新增 `tests/negative/stage2_no_extern_c.cpp`（C++ 风格重声明 → Itanium 修饰名 `_Z9vmath_adddd` 未定义引用）、`tests/negative/run.sh`（期望失败运行器：mangling 特征 nm 证明 + 链接失败 = 通过，日志归档 `reports/v0.7.0/negative/`）与 `tests/negative/README.md`（修复方式 = 恢复 extern "C" 守卫）；实测特征串双证（nm `U _Z9vmath_adddd` + ld `undefined reference`）。
+
 - F-07-01 · C++ 主程序：新增 `stage2/main.cpp`（`#include "vmath.h"` 直调 extern "C" 接口、异常边界防御示范）与 `stage2/README.md`（三 OS 构建命令 + 复用产物不重编库说明）；Linux 实测：链接运行正确（`add=4`/`dot=32`）、`nm -C` 引用为未修饰名 `U vmath_add`；mac/win 随 runner。
 
 ## v0.6.0 (2026-11-16)

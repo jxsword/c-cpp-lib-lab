@@ -1,0 +1,23 @@
+# tests/assertions/F-07-02.yml — F-07-02 断言基线
+card: F-07-02
+checks:
+  - id: A1-negative-run-pass
+    action: run
+    args: ./tests/negative/run.sh stage2_no_extern_c
+    expect: exit0
+  - id: A1b-mangling-signature
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq _Z9vmath_adddd reports/v0.7.0/negative/stage2_no_extern_c.log
+    expect: exit0
+  - id: A2-not-in-main-build
+    action: script
+    args: ./scripts/tools/assert_tree.sh notgrep stage2_no_extern_c CMakeLists.txt
+    expect: exit0
+  - id: A3-fix-recorded
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq 恢复 extern tests/negative/README.md
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-07-02
+    expect: exit0

@@ -1,0 +1,7 @@
+negative case: stage2_no_extern_c
+command: g++ stage2_no_extern_c.cpp <libdir=stage1 shared artifact>
+expect: link FAILURE with mangling signature
+
+0000000000000000 T main
+                 U vmath_add(double, double)
+NOTE: library artifact not found; compile-only mode recorded mangled reference
