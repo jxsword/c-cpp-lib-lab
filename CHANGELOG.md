@@ -2,6 +2,11 @@
 
 本文件记录 c-cpp-lib-lab 的所有显著变更。每个里程碑发布对应一个 `v<semver>` 附注 tag（落在 `main`），版本语义见 CONTRIBUTING.md「版本与 tag 策略」一节。
 
+## v0.8.0 (in progress)
+
+- F-08-02 · `Statistics` 类与 3 源 / 2 头：新增 `stage3/include/stats.hpp`（组合 Vector，非继承）+ `stage3/src/stats.cpp`（min/max/mean/count）+ `stage3/src/main.cpp`（OOP 自测驱动）+ `stage3/README.md`（设计要点与 `_ITERATOR_DEBUG_LEVEL` 差异说明）；`Vector` 增 `push_back`（组合可用性）；恰好 3 `.cpp` + 2 `.hpp`；Debug/Release 双构建成功、`nm -C` 记录 Itanium mangling（MSVC `?*@@` 差异待 runner 对照）。
+- F-08-01 · `Vector` 类：新增 `stage3/include/vector.hpp` + `stage3/src/vector.cpp`（声明与实现分离、`std::vector` 私有成员不导出到库边界、public 方法、与 vmath.h 零 include 耦合）；`-std=c++17 -Wall -Wextra -Werror` 零警告、`nm -C` 可见 `Vector::` mangled 符号。
+
 ## v0.7.0 (2026-11-16)
 
 M7 里程碑发布：阶段 2（C++ 调 C 库）完成——`stage2/main.cpp` 未修饰名直调 extern "C" 接口（`U vmath_add` 实证）、`std::vector` data() 跨边界逐位一致（数据可传、类型不可跨）、空容器走 C 库错误分支；反例 `extern "C"` 缺失（`U _Z9vmath_adddd` + undefined reference 双证）与期望失败机制就绪。Linux 全实跑；mac/win 随 runner。下一里程碑纯 C++ OOP（M8，Gate B 完整达成）。

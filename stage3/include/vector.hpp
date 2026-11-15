@@ -17,9 +17,10 @@ public:
     Vector();
     explicit Vector(std::size_t n, double initial = 0.0);
 
-    // ≥2 成员方法：下标读写 + 归一化 + 元素数
+    // ≥2 成员方法：下标读写 + 尾插 + 归一化 + 元素数
     double &at(std::size_t index);
     const double &at(std::size_t index) const;
+    void push_back(double value);
     void normalize();
     std::size_t size() const;
 
