@@ -23,7 +23,7 @@
 - **K3**：`restore-keys` 只允许同前缀回退（同一 OS+toolset+variant+cfg+kind 内），禁止跨 toolset/variant。
 - **K4**：跨 job 传构建产物用 `upload/download-artifact`，不用 cache。
 - **K5**：命中/未命中写入 `$GITHUB_STEP_SUMMARY`（action 末步）与卡回执（D11）。
-- **K7**：恢复/保存分离——`actions/cache/restore@v4` + `actions/cache/save@v4`，save 步骤均带 `if: always()`，失败 job 也保存已下载包。（上游 combined action 的 `save-always` 输入已弃用且声明不按预期工作，故不用。）
+- **K7**：恢复/保存分离——`actions/cache/restore@v4` + `actions/cache/save@v4`，save 步骤均带 `if: always()`，失败 job 也保存已下载包；各 save 前有「Ensure … path exists」步骤兜底建目录（`save@v4` 对不存在路径会静默跳过——冷启动零缓存作用域下曾致演练 verify 必然 miss）。（上游 combined action 的 `save-always` 输入已弃用且声明不按预期工作，故不用。）
 - **K8**：缓存只读恢复；构建脚本不得写缓存目录以外路径。
 
 ## 命中率记录方式

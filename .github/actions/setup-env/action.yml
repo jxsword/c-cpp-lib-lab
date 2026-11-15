@@ -91,6 +91,13 @@ runs:
         key: cc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-${{ github.run_id }}
         restore-keys: cc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-
 
+    # save 前确保缓存路径存在：冷启动（无任何可恢复缓存）时路径可能尚未生成，
+    # save@v4 对不存在路径会直接跳过（K7 失效）——在此统一 mkdir 兜底
+    - name: Ensure Linux ccache path exists
+      if: runner.os == 'Linux'
+      shell: bash
+      run: mkdir -p ~/.cache/ccache
+
     - name: Save Linux ccache
       if: always() && runner.os == 'Linux'
       uses: actions/cache/save@v4
@@ -114,6 +121,11 @@ runs:
       shell: bash
       run: xargs -a .github/brew-packages.txt brew install
 
+    - name: Ensure brew cache paths exist
+      if: runner.os == 'macOS'
+      shell: bash
+      run: mkdir -p ~/Library/Caches/Homebrew ~/.brew-cache ~/.cache/ccache
+
     - name: Save Homebrew downloads
       if: always() && runner.os == 'macOS'
       uses: actions/cache/save@v4
@@ -132,6 +144,11 @@ runs:
         path: ~/.cache/ccache
         key: cc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-${{ github.run_id }}
         restore-keys: cc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-
+
+    - name: Ensure macOS ccache path exists
+      if: runner.os == 'macOS'
+      shell: bash
+      run: mkdir -p ~/.cache/ccache
 
     - name: Save macOS ccache
       if: always() && runner.os == 'macOS'
@@ -165,6 +182,11 @@ runs:
           C:\tools\deps
         key: win-tools-${{ inputs.toolset }}-${{ hashFiles('.github/tool-versions.env') }}
 
+    - name: Ensure Windows cache paths exist
+      if: runner.os == 'Windows'
+      shell: bash
+      run: mkdir -p "$HOME/AppData/Local/sccache" /c/tools/llvm /c/tools/ninja /c/tools/deps
+
     - name: Save Windows tools
       if: always() && runner.os == 'Windows'
       uses: actions/cache/save@v4
@@ -184,6 +206,11 @@ runs:
         path: ~\AppData\Local\sccache
         key: sc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-${{ github.run_id }}
         restore-keys: sc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-
+
+    - name: Ensure Windows sccache path exists
+      if: runner.os == 'Windows'
+      shell: bash
+      run: mkdir -p "$HOME/AppData/Local/sccache"
 
     - name: Save Windows sccache
       if: always() && runner.os == 'Windows'
