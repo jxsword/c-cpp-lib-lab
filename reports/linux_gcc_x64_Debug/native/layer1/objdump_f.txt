@@ -1,6 +1,0 @@
-
-/home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Debug/static/calctool:     file format elf64-x86-64
-architecture: i386:x86-64, flags 0x00000150:
-HAS_SYMS, DYNAMIC, D_PAGED
-start address 0x00000000000012e0
-
