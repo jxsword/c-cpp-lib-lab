@@ -130,11 +130,14 @@ elseif ($toolset -eq 'msys2') {
     }
 }
 else {
-    # .def @5 NONAME（PLAN 608）：build_info 按名不出现，仅 ordinal 5 可寻址
-    $miss5 = @($named5 | Where-Object { $exports -notmatch [regex]::Escape($_) })
+    # .def @5 NONAME（PLAN 608）：build_info 按名不出现，仅 ordinal 5 可寻址。
+    # Debug 增量链接下 dumpbin 以「[NONAME] @ILT+45(vmath_build_info)」形式引用
+    # 底层符号——按名判定前先剔除 [NONAME] 行，避免把 ILT 注解误判为按名导出。
+    $namedLines = (@($exports -split "`n") -notmatch '\[NONAME\]') -join "`n"
+    $miss5 = @($named5 | Where-Object { $namedLines -notmatch [regex]::Escape($_) })
     if ($miss5.Count -gt 0) { Record 'SA-5' 'FAIL' "missing: $($miss5 -join ',')" }
-    elseif ($exports -match 'vmath_build_info') {
-        $hit = (@($exports -split "`n") | Where-Object { $_ -match 'vmath_build_info' } | Select-Object -First 1)
+    elseif ($namedLines -match 'vmath_build_info') {
+        $hit = (@($namedLines -split "`n") | Where-Object { $_ -match 'vmath_build_info' } | Select-Object -First 1)
         Record 'SA-5' 'FAIL' "NONAME violated: build_info resolvable by name (line: $("$hit".Trim()))"
     }
     else { Record 'SA-5' 'PASS' '5 API by name + build_info @5 NONAME (msvc/clang-cl)' }
