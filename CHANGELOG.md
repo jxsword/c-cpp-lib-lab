@@ -2,6 +2,10 @@
 
 本文件记录 c-cpp-lib-lab 的所有显著变更。每个里程碑发布对应一个 `v<semver>` 附注 tag（落在 `main`），版本语义见 CONTRIBUTING.md「版本与 tag 策略」一节。
 
+## v0.7.0 (in progress)
+
+- F-07-01 · C++ 主程序：新增 `stage2/main.cpp`（`#include "vmath.h"` 直调 extern "C" 接口、异常边界防御示范）与 `stage2/README.md`（三 OS 构建命令 + 复用产物不重编库说明）；Linux 实测：链接运行正确（`add=4`/`dot=32`）、`nm -C` 引用为未修饰名 `U vmath_add`；mac/win 随 runner。
+
 ## v0.6.0 (2026-11-16)
 
 M6 里程碑发布：③ CMake 三 OS 24 组合口径收口（msvc/clang-cl 强制 Ninja，S9）——**80 组合构建矩阵三 OS 口径全部就绪**（native 24 + make 32 + cmake 24）；CTest 三类四项用例（每组合 ≥3）；RPATH 两阶段断言汇总（`reports/v0.6.0/SUMMARY.md`）。Linux 16 组合形态实跑全绿；mac/win 产物级实证按口径委托 F-09-02。下一里程碑进入 C++ 语言演进（M7 阶段 2）。
