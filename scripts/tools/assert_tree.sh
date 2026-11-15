@@ -71,6 +71,12 @@ case "$cmd" in
     bom)
         [ "$(head -c 3 "$1" | od -An -tx1 | tr -d ' \n')" = "efbbbf" ]
         ;;
+    # crlf <file> —— CRLF 换行（每行均以 CR 结尾）且无 BOM
+    crlf)
+        cr=$(tr -dc '\r' < "$1" | wc -c)
+        lf=$(tr -dc '\n' < "$1" | wc -c)
+        [ "$cr" -eq "$lf" ] && [ "$cr" -gt 0 ] && [ "$(head -c 3 "$1" | od -An -tx1 | tr -d ' \n')" != "efbbbf" ]
+        ;;
     # cardchecked <卡号> —— PLAN 3.1 中该卡已打勾
     cardchecked)
         grep -qE "^- \[x\] \`$1\`" docs/PLAN.md
