@@ -4,6 +4,8 @@
 
 ## v0.4.0 (in progress)
 
+- F-04-04 · 静态分析三 OS 扩展（S7）：三 OS 依赖树输出统一 JSON schema（`root{path,arch,compiler,cfg}` + `tree{name,logical,real,origin,children}` + `symlink_chains`/`dedup`，Linux 实证四字段）；`deps_tree.ps1` 增 `Get-Item -Force` 的 LinkType symlink/junction 判定与 API-Set/KnownDLL 归类；第二层工具接入（macOS `dylibbundler` 分析模式、Windows Dependencies CLI，版本 pin 于 tool-versions.env，缺失即记录）；产物级断言（A1–A3）待各 OS runner CI 实证。
+
 - F-04-03 · Windows 动态加载（RV）：`calctool --dynamic` 平台分叉——Windows 分支 `LoadLibraryA` 绝对路径、`GetProcAddress` 按名 6 API、`GetProcAddress(h, MAKEINTRESOURCEA(5))` 按 ordinal 取 `vmath_build_info`（`.def @5 NONAME`：按名必 NULL 为 A2 期望行为）、`FreeLibrary` 前经函数表注销 logger；Unix 分支不受影响（Linux 回归全绿）；`docs/baseline.md` 增 `LOAD_LIBRARY_SEARCH_*` 加固对照（PATH 劫持面 → 收敛搜索面，加固变体登记 F-09-08）；产物级断言（A1–A4）待 F-09-02 windows runner CI 实证。
 - F-04-02 · Windows 原生脚本（bat + ps1）与 18 组合：新增 `scripts/windows/` 全套（native/nmake/msbuild/cmake/build_all/static_analyze/run/bundle 的 bat 薄入口 + ps1 逻辑层、deps_tree.ps1、env.*）与 `scripts/{common.ps1,verify_card.ps1}`（ps1 全 UTF-8 BOM + CRLF、bat 全 CRLF）——msvc `cl /LD /DEF:def\vmath.def`（/MD|/MT ↔ /MDd|/MTd 联动）、msys2 四环境独立工具链前缀（C8 不混链）、clang-cl 同 MSVC、cmake.ps1 msvc/clang-cl 强制 Ninja（S9）；18 组合（msvc 4 变体 × 2 + msys2 4 环境 × 2 + clang-cl × 2）× 双形态编排就绪，产物级断言（A1–A6）待 F-09-02 windows runner CI 实证。
 - F-04-01 · macOS 原生与静态分析脚本（bash）：新增 `scripts/macos/` 全套（env/common/native/make/cmake/build_all/static_analyze/deps_tree/run/bundle，bash/LF/无 BOM）——`-dynamiclib -Wl,-install_name,@rpath/libvmath.dylib -fvisibility=hidden`、arm64 主组合 + x86_64 附加架构覆盖、x86 输入 SKIP（10.15 起 32 位移除，exit 0）、三层静态分析（otool/lipo/nm -gU/dwarfdump/dyld_info + `libSystem.B.dylib` shared-cache 分类）；产物级断言（A1–A5）待 F-09-02 macos runner CI 实证。

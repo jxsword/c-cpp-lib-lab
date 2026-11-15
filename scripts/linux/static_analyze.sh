@@ -209,7 +209,7 @@ else
 fi
 
 # SA-8 依赖树（先跑：SA-7 的 realpath 证据取自树输出）
-if bash "$(dirname "$0")/deps_tree.sh" "$BIN" "$ART" -o "$REPORT/deps/${TAG}_${KIND}" --tag "${TAG}_${KIND}" >/dev/null 2>&1 &&
+if bash "$(dirname "$0")/deps_tree.sh" "$BIN" "$ART" -o "$REPORT/deps/${TAG}_${KIND}" --tag "${TAG}_${KIND}" --compiler "$compiler" --cfg "$CFG" >/dev/null 2>&1 &&
    python3 -m json.tool "$REPORT/deps/${TAG}_${KIND}.json" >/dev/null 2>&1; then
     record SA-8 PASS "deps tree: deps/${TAG}_${KIND}.{json,md} (BFS, realpath dedup, JSON valid)"
 else

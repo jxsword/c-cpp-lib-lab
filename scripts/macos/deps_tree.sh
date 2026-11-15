@@ -14,11 +14,15 @@ OUT_BASE=""
 DEPTAG=""
 while [ "$#" -gt 0 ]; do
     case "$1" in
-        -o)    OUT_BASE="$2"; shift 2 ;;
-        --tag) DEPTAG="$2"; shift 2 ;;
-        *)     shift ;;
+        -o)         OUT_BASE="$2"; shift 2 ;;
+        --tag)      DEPTAG="$2"; shift 2 ;;
+        --compiler) COMPILER="$2"; shift 2 ;;
+        --cfg)      CFGV="$2"; shift 2 ;;
+        *)          shift ;;
     esac
 done
+COMPILER="${COMPILER:-unknown}"
+CFGV="${CFGV:-unknown}"
 [ -n "$OUT_BASE" ] || OUT_BASE="${ART}.deps"
 [ -n "$DEPTAG" ] || DEPTAG=$(basename "$ART")
 mkdir -p "$(dirname "$OUT_BASE")"
@@ -110,10 +114,28 @@ EOF
 }
 
 {
-    printf '{"tag": "%s", "root": {"path": "%s", "arch": "%s"}, "tree": ' \
-        "$DEPTAG" "$(readlink -f "$ART")" "$(lipo -archs "$ART" 2>/dev/null | tr ' ' ',')"
+    printf '{"tag": "%s", "root": {"path": "%s", "arch": "%s", "compiler": "%s", "cfg": "%s"}, "tree": ' \
+        "$DEPTAG" "$(readlink -f "$ART")" "$(lipo -archs "$ART" 2>/dev/null | tr ' ' ',')" \
+        "$COMPILER" "$CFGV"
     emit_node "$(basename "$ART")" "$(readlink -f "$ART")" "" ""
-    printf ', "note": "libSystem.B.dylib 等 /usr/lib/system 库为 macOS shared cache，不落盘"}\n'
+    printf ', "symlink_chains": ['
+    n=0
+    while IFS= read -r lnk; do
+        tgt=$(readlink -f "$lnk" 2>/dev/null) || continue
+        [ -n "$tgt" ] || continue
+        [ "$tgt" = "$lnk" ] && continue
+        n=$((n + 1))
+        [ "$n" -gt 1 ] && printf ', '
+        printf '["%s", "%s"]' "$(basename "$lnk")" "$(basename "$tgt")"
+    done < <(find "$ART_DIR" -maxdepth 1 -type l 2>/dev/null)
+    printf '], "dedup": ['
+    first=1
+    for r in "${!SEEN[@]}"; do
+        [ "$first" = 1 ] || printf ', '
+        printf '"%s"' "$r"
+        first=0
+    done
+    printf '], "note": "libSystem.B.dylib 等 /usr/lib/system 库为 macOS shared cache，不落盘"}\n'
 } > "$OUT_BASE.json"
 
 echo "deps_tree: $OUT_BASE.json"

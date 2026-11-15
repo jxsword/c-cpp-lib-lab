@@ -429,7 +429,7 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [x] `F-04-01` · macOS 原生与静态分析脚本（bash）
 - [x] `F-04-02` · Windows 原生脚本（**bat + ps1**）与 18 组合
 - [x] `F-04-03` · Windows 动态加载（按名 + ordinal，**属 RV**）
-- [ ] `F-04-04` · **静态分析三 OS 扩展（S7）**
+- [x] `F-04-04` · **静态分析三 OS 扩展（S7）**
 - [ ] `F-04-05` · 24 组合矩阵收口与约束记录
 - [ ] `F-05-01` · GNU make（14 组合）
 - [ ] `F-05-02` · **nmake 单独 makefile（10 组合，S9）**
