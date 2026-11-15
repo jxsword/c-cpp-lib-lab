@@ -37,7 +37,7 @@ jobs:
             macos) ./scripts/macos/run.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
             windows) pwsh -File scripts/windows/run.ps1 -Tag "$TAG" -Kind "${{ inputs.kind }}" -Group "${{ inputs.group }}" ;;
           esac
-      - name: Publish program output to Job Summary (A4: self-test + info 实际文本)
+      - name: Publish program output to Job Summary (A4 self-test + info 实际文本)
         if: always()
         shell: bash
         run: |
