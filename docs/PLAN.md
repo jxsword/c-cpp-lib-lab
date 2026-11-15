@@ -465,7 +465,7 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [x] `R-06` · 发布 `v0.6.0`
 - [x] `R-07` · 发布 `v0.7.0`
 - [x] `R-08` · 发布 `v0.8.0`（Gate B）
-- [ ] `R-09` · 发布 `v1.0.0`（Gate C）
+- [x] `R-09` · 发布 `v1.0.0`（Gate C）
 
 ---
 
