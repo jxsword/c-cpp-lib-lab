@@ -1,0 +1,38 @@
+# tests/assertions/F-04-02.yml — F-04-02 断言基线
+# 产物级断言（A1 18 组合构建 / A2 dumpbin /exports / A3 errno 平台差异 / A4 VCRUNTIME / A6 混链）
+# 需 Windows runner（msvc/msys2 工具链），自 F-09-02 起在 CI 实证；
+# 本 yml 为本地可执行机器子集（文件齐备 / 编码规范 / pwsh 解析 / 结构断言）。
+card: F-04-02
+checks:
+  - id: A1-scripts-complete
+    action: run
+    args: ls scripts/windows/env.bat scripts/windows/env.ps1 scripts/windows/native.bat scripts/windows/native.ps1 scripts/windows/nmake.bat scripts/windows/nmake.ps1 scripts/windows/msbuild.bat scripts/windows/msbuild.ps1 scripts/windows/cmake.bat scripts/windows/cmake.ps1 scripts/windows/build_all.bat scripts/windows/build_all.ps1 scripts/windows/static_analyze.bat scripts/windows/static_analyze.ps1 scripts/windows/deps_tree.ps1 scripts/windows/run.bat scripts/windows/run.ps1 scripts/windows/bundle.bat scripts/windows/bundle.ps1 scripts/common.ps1 scripts/verify_card.ps1
+    expect: exit0
+  - id: A7-encoding-all-green
+    action: run
+    args: ./scripts/tools/check_encoding.sh
+    expect: exit0
+  - id: A7-ps1-bom-native
+    action: script
+    args: ./scripts/tools/assert_tree.sh bom scripts/windows/native.ps1
+    expect: exit0
+  - id: A2-def-linked-in-native
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq /DEF: scripts/windows/native.ps1
+    expect: exit0
+  - id: A3-msvc-no-auto-export
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq WINDOWS_EXPORT_ALL_SYMBOLS scripts/CMakeLists.txt
+    expect: exit:1
+  - id: A4-crt-flag-mapping
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq MultiThreaded scripts/windows/cmake.ps1
+    expect: exit0
+  - id: A6-msys2-env-isolation
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq C8 scripts/windows/native.ps1
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-04-02
+    expect: exit0
