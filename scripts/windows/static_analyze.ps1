@@ -102,27 +102,29 @@ else {
     else { Record 'SA-4' 'FAIL' "shared: vmath.dll missing" }
 }
 
-# SA-5 导出符号集（dumpbin /exports ordinal 1-6；msvc 无 errno、MinGW 有）
+# SA-5 导出符号集（msvc/clang-cl/nmake/msbuild：.def @5 NONAME → 按名 5 API +
+# build_info 按名不得出现；msys2：默认全导出 → 6 API + vmath_errno）
 $exports = if (Test-Path "$report\layer1\dumpbin_exports.txt") { Get-Content "$report\layer1\dumpbin_exports.txt" -Raw } else { '' }
-$apiNames = @('vmath_add', 'vmath_dot', 'vmath_build_info', 'vmath_free', 'vmath_last_error', 'vmath_set_logger')
-$missing = @($apiNames | Where-Object { $exports -notmatch [regex]::Escape($_) })
-    if ($Kind -eq 'static') { Record 'SA-5' 'PASS' 'deferred: static kind — exe has no export table (def contract asserted on vmath.def by verify_card)' }
-    elseif ($exports -eq '') { Record 'SA-5' 'PASS' 'deferred: dumpbin unavailable locally (expect 6 API ordinals 1-6, @5 NONAME)' }
-    elseif ($missing.Count -eq 0) {
-        if ($toolset -eq 'msys2') {
-            if ($exports -match 'vmath_errno') { Record 'SA-5' 'PASS' '6 API + vmath_errno (MinGW default export)' }
-            else { Record 'SA-5' 'FAIL' 'MinGW missing vmath_errno' }
-        }
-        else {
-            # .def @5 NONAME（PLAN 608）：build_info 按名不出现，仅 ordinal 5 可寻址
-            $named5 = @('vmath_add', 'vmath_dot', 'vmath_set_logger', 'vmath_free', 'vmath_last_error')
-            $miss5 = @($named5 | Where-Object { $exports -notmatch [regex]::Escape($_) })
-            if ($miss5.Count -gt 0) { Record 'SA-5' 'FAIL' "missing: $($miss5 -join ',')" }
-            elseif ($exports -match 'vmath_build_info') { Record 'SA-5' 'FAIL' 'NONAME violated: build_info resolvable by name' }
-            else { Record 'SA-5' 'PASS' '5 API by name + build_info @5 NONAME (msvc/clang-cl)' }
-        }
-    }
+$named5 = @('vmath_add', 'vmath_dot', 'vmath_set_logger', 'vmath_free', 'vmath_last_error')
+$named6 = @($named5 + 'vmath_build_info')
+if ($Kind -eq 'static') {
+    Record 'SA-5' 'PASS' 'deferred: static kind — exe has no export table (def contract asserted on vmath.def by verify_card)'
+}
+elseif ($exports -eq '') {
+    Record 'SA-5' 'PASS' 'deferred: dumpbin unavailable locally (expect 6 API ordinals 1-6, @5 NONAME)'
+}
+elseif ($toolset -eq 'msys2') {
+    $missing = @(@($named6 + @('vmath_errno')) | Where-Object { $exports -notmatch [regex]::Escape($_) })
+    if ($missing.Count -eq 0) { Record 'SA-5' 'PASS' '6 API + vmath_errno (MinGW default export)' }
     else { Record 'SA-5' 'FAIL' "missing: $($missing -join ',')" }
+}
+else {
+    # .def @5 NONAME（PLAN 608）：build_info 按名不出现，仅 ordinal 5 可寻址
+    $miss5 = @($named5 | Where-Object { $exports -notmatch [regex]::Escape($_) })
+    if ($miss5.Count -gt 0) { Record 'SA-5' 'FAIL' "missing: $($miss5 -join ',')" }
+    elseif ($exports -match 'vmath_build_info') { Record 'SA-5' 'FAIL' 'NONAME violated: build_info resolvable by name' }
+    else { Record 'SA-5' 'PASS' '5 API by name + build_info @5 NONAME (msvc/clang-cl)' }
+}
 
 # SA-6 内部符号（normalize_ 不在导出表）
 if ($exports -eq '') { Record 'SA-6' 'PASS' 'deferred: dumpbin unavailable locally' }

@@ -54,17 +54,19 @@ try {
             if (Test-Path $vcbin) { $env:PATH = "$vcbin;$env:PATH" }
         }
         $crt = Get-MsvcCrtFlag $Variant $Cfg
+        # /DEBUG 为链接期旗标：Debug 独立链接需显式传入以产出 exe pdb（SA-3）
+        $linkDbg = @(); if ($Cfg -eq 'Debug') { $linkDbg = @('/DEBUG') }
         if ($Kind -eq 'static') {
             Invoke-Logged $cc $clCfg $crt '/DCALC_STATIC' "/I$inc" '/c' "$src\vmath_core.c" "/Fo$out\vmath_core.obj"
             Invoke-Logged $cc $clCfg $crt '/DCALC_STATIC' "/I$inc" '/c' "$src\vmath_report.c" "/Fo$out\vmath_report.obj"
             Invoke-Logged $cc $clCfg $crt '/DCALC_STATIC' "/I$inc" '/c' "$src\calctool.c" "/Fo$out\calctool.obj"
             Invoke-Logged lib "/OUT:$out\vmath.lib" "$out\vmath_core.obj" "$out\vmath_report.obj"
-            Invoke-Logged link "$out\calctool.obj" "$out\vmath.lib" "/OUT:$out\calctool.exe"
+            Invoke-Logged link "$out\calctool.obj" "$out\vmath.lib" "/OUT:$out\calctool.exe" $linkDbg
         }
         else {
             Invoke-Logged $cc $clCfg $crt '/DCALC_BUILD_DLL' '/LD' "/I$inc" "$src\vmath_core.c" "$src\vmath_report.c" "/Fe:$out\vmath.dll" "/link" "/DEF:$root\def\vmath.def" "/IMPLIB:$out\vmath.lib"
-            Invoke-Logged $cc $clCfg '/DCALC_USE_DLL' "/I$inc" '/c' "$src\calctool.c" "/Fo$out\calctool.obj"
-            Invoke-Logged link "$out\calctool.obj" "$out\vmath.lib" "/OUT:$out\calctool.exe"
+            Invoke-Logged $cc $clCfg $crt '/DCALC_USE_DLL' "/I$inc" '/c' "$src\calctool.c" "/Fo$out\calctool.obj"
+            Invoke-Logged link "$out\calctool.obj" "$out\vmath.lib" "/OUT:$out\calctool.exe" $linkDbg
         }
     }
     else {
