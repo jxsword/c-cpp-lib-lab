@@ -433,7 +433,7 @@ scope  : export | api | core | report | cli | stage2 | stage3 |
 - [x] `F-04-05` · 24 组合矩阵收口与约束记录
 - [x] `F-05-01` · GNU make（14 组合）
 - [x] `F-05-02` · **nmake 单独 makefile（10 组合，S9）**
-- [ ] `F-05-03` · MSBuild（8 组合）
+- [x] `F-05-03` · MSBuild（8 组合）
 - [ ] `F-05-04` · 32 组合横向对比
 - [ ] `F-06-01` · CMake 三 OS 24 组合
 - [ ] `F-06-02` · CTest 三 OS 与 out-of-source 断言

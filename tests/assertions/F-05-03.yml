@@ -1,0 +1,37 @@
+# tests/assertions/F-05-03.yml — F-05-03 断言基线
+# A1/A2/A4 产物级断言（msbuild/cl/dumpbin）需 VS 环境，自 F-09-02 windows runner 实证；
+# 本 yml 为本地可执行机器子集（XML 结构 / out-of-source 默认值 / .def 条件挂载 / CRT 注入位）。
+card: F-05-03
+checks:
+  - id: A1-xml-valid
+    action: run
+    args: python3 -c import xml.dom.minidom; xml.dom.minidom.parse(vmath.vcxproj)
+    expect: exit0
+  - id: A5-outdir-default-in-build
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq build\\make\\msbuild vmath.vcxproj
+    expect: exit0
+  - id: A3-def-only-dynamic
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepctx DynamicLibrary 4 ModuleDefinitionFile vmath.vcxproj
+    expect: exit0
+  - id: A3b-form-macro-injection
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq CALC_BUILD_DLL vmath.vcxproj
+    expect: exit0
+  - id: A2-runtime-library-injectable
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq RuntimeLibrary scripts/windows/msbuild.ps1
+    expect: exit0
+  - id: platformtoolset-v143
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq v143 vmath.vcxproj
+    expect: exit0
+  - id: A5b-d2-clean
+    action: script
+    args: ./scripts/tools/assert_tree.sh srcnoartifacts .
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-05-03
+    expect: exit0
