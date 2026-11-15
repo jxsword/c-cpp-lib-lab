@@ -20,8 +20,9 @@ if (-not (Test-Path $bin)) { Write-Fail "artifact not found: $bin"; exit 1 }
 
 $parts = $Tag -split '_'
 $toolset = $parts[1]
-$variant = $parts[2]
-$cfg = $parts[3]
+# 变体可含下划线（x64_MD/x86_MT）：cfg 取最后一段，变体向前拼回
+$cfg = $parts[-1]
+$variant = if ($parts.Count -gt 4) { "$($parts[2])_$($parts[3])" } else { $parts[2] }
 $script:viol = 0
 
 function Record([string]$id, [string]$result, [string]$evidence) {
@@ -30,10 +31,12 @@ function Record([string]$id, [string]$result, [string]$evidence) {
 }
 
 # ① 内置工具原始输出（dumpbin 需 vcvars 环境；缺失即记录）
+# SA-5/SA-6 的导出表面是库而非 exe：shared 取 vmath.dll，static 取 exe（无导出表→deferred）
+$exportTarget = if ($Kind -eq 'shared') { Join-Path $art 'vmath.dll' } else { $bin }
 $dumpbin = Get-Command dumpbin -ErrorAction SilentlyContinue
 if ($dumpbin) {
     & dumpbin /headers $bin > "$report\layer1\dumpbin_headers.txt" 2>&1
-    & dumpbin /exports $bin > "$report\layer1\dumpbin_exports.txt" 2>&1
+    & dumpbin /exports $exportTarget > "$report\layer1\dumpbin_exports.txt" 2>&1
     & dumpbin /dependents $bin > "$report\layer1\dumpbin_dependents.txt" 2>&1
 }
 else {
@@ -71,8 +74,8 @@ if ($hdr -match "machine \($wantMachine\)") { Record 'SA-1' 'PASS' "machine=$wan
 elseif ($hdr -match '^dumpbin:') { Record 'SA-1' 'PASS' 'deferred: dumpbin unavailable locally (CI runner will verify)' }
 else { Record 'SA-1' 'FAIL' "machine not $wantMachine" }
 
-# SA-2 编译器（linker version + Rich header；msvc <n> 格式）
-$linkerVer = [regex]::Match($hdr, 'linker version ([0-9.]+)').Groups[1].Value
+# SA-2 编译器（linker version + Rich header；dumpbin 输出值在前：<n> linker version）
+$linkerVer = [regex]::Match($hdr, '([0-9.]+) linker version').Groups[1].Value
 if ($linkerVer) { Record 'SA-2' 'PASS' "compiler: msvc linker $linkerVer" }
 elseif ($hdr -match '^dumpbin:') { Record 'SA-2' 'PASS' 'deferred: dumpbin unavailable locally' }
 else { Record 'SA-2' 'FAIL' 'compiler version not extractable' }
@@ -87,13 +90,15 @@ elseif ($hdr -match '^dumpbin:') { Record 'SA-3' 'PASS' 'deferred: dumpbin unava
 else { Record 'SA-3' 'FAIL' "cfg=$cfg pdb=$([bool]$pdb)" }
 
 # SA-4 库形态
-# SA-4 库形态（shared 的 vmath.lib 为 /IMPLIB import lib，属预期产物）
+# SA-4 库形态（shared 的 vmath.lib 为 /IMPLIB import lib，属预期产物；
+# msys2 静态库为 GNU 命名 libvmath.a，msvc/clang-cl/nmake 为 vmath.lib）
+$staticLib = if ($toolset -eq 'msys2') { 'libvmath.a' } else { 'vmath.lib' }
 if ($Kind -eq 'static') {
-    if ((Test-Path "$art\vmath.lib") -and -not (Test-Path "$art\vmath.dll")) { Record 'SA-4' 'PASS' "static: vmath.lib present, no vmath.dll" }
-    else { Record 'SA-4' 'FAIL' "static: vmath.lib=$((Test-Path "$art\vmath.lib")) vmath.dll=$((Test-Path "$art\vmath.dll"))" }
+    if ((Test-Path "$art\$staticLib") -and -not (Test-Path "$art\vmath.dll")) { Record 'SA-4' 'PASS' "static: $staticLib present, no vmath.dll" }
+    else { Record 'SA-4' 'FAIL' "static: $staticLib=$((Test-Path "$art\$staticLib")) vmath.dll=$((Test-Path "$art\vmath.dll"))" }
 }
 else {
-    if (Test-Path "$art\vmath.dll") { Record 'SA-4' 'PASS' "shared: vmath.dll present (import lib vmath.lib allowed)" }
+    if (Test-Path "$art\vmath.dll") { Record 'SA-4' 'PASS' "shared: vmath.dll present (import lib allowed)" }
     else { Record 'SA-4' 'FAIL' "shared: vmath.dll missing" }
 }
 
