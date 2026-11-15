@@ -18,10 +18,10 @@ case "$cmd" in
         n=$(find "$1" -mindepth "$2" -maxdepth "$2" -type d -not -path '*smoke*' 2>/dev/null | wc -l)
         [ "$n" -eq "$3" ]
         ;;
-    # grepeq <pattern> <file...> —— ERE 静态匹配（文件存在即查）
+    # grepeq <pattern> <file...> —— ERE 静态匹配（-a：ELF 等二进制按文本行搜）
     grepeq)
         pat="$1"; shift
-        grep -qE -- "$pat" "$@"
+        grep -aqE -- "$pat" "$@"
         ;;
     # grepctx <pattern> <after行数> <子pattern> <file> —— 命中后 N 行内再命中
     grepctx)
