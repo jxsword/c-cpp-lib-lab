@@ -6,3 +6,4 @@ binutils
 pax-utils
 patchelf
 abigail-tools
+llvm

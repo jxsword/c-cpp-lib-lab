@@ -1,0 +1,2 @@
+== /home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Debug/static/calctool ==
+

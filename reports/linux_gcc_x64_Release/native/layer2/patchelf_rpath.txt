@@ -1,0 +1,4 @@
+== /home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared/calctool ==
+$ORIGIN
+== /home/ssy/proj/c-cpp-lib-lab/build/native/linux_gcc_x64_Release/shared/libvmath.so.1.0.0 ==
+
