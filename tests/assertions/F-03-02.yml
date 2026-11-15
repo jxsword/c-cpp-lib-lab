@@ -11,7 +11,7 @@ checks:
     expect: exit0
   - id: A3-reports-v030-collected
     action: script
-    args: ./scripts/tools/assert_tree.sh filecount reports/v0.3.0 *.md 8
+    args: ./scripts/tools/assert_tree.sh filecount reports/v0.3.0 *.md 9
     expect: exit0
   - id: A4-baseline-55-57
     action: script

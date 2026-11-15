@@ -26,8 +26,12 @@
 | `reports/` | 各里程碑静态分析 / 运行验证报告（`reports/<tag>/...`） |
 | `build/`、`out/` | 构建产物（被 `.gitignore` 忽略，永不入库） |
 
+## 当前范围
+
+**当前仅 Linux 单平台**（native + CMake 两种构建方式 × gcc x86/x64 × Debug/Release × static/shared）。三 OS（Windows msvc/msys2/clang-cl、macOS）与 make 组（GNU make/nmake/MSBuild）见里程碑 M4–M6（Gate B），make 组属 M5、CMake 三 OS 属 M6。
+
 ## 状态
 
-- 当前里程碑：M0（`v0.0.0` in progress，详见 [CHANGELOG.md](CHANGELOG.md)）
+- 当前里程碑：M3（`v0.3.0` Gate A，详见 [CHANGELOG.md](CHANGELOG.md) 与 [reports/v0.3.0/SUMMARY.md](reports/v0.3.0/SUMMARY.md)）
 - 分支模型：git flow —— `main` 受保护（只接受 PR），`develop` 集成主线，feature 一卡一分支
 - 许可：MIT（见 [LICENSE](LICENSE)）

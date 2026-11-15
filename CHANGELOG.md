@@ -6,7 +6,11 @@
 
 M0 里程碑发布：仓库骨架与 git flow（main/develop 受保护、SSH origin）、lint 门禁、CI 缓存基础设施（S1）、编码/换行规范与静态分析禁令基线（S6/S7，D9/D10 生效）全部就绪；`docs/PLAN.md`（v1.3.2）为唯一权威计划。Gate A 前置达成，下一里程碑进入纯 C 源码（M1）。
 
-## v0.3.0 (in progress)
+## v0.3.0 (2026-11-16) · Gate A
+
+M3 里程碑发布，**Gate A 达成**：① 原生 Linux 4 组合 + ③ CMake Linux 4 组合（各 × static/shared 双形态 = 16 个组合形态）全部构建 + 自测绿；SA-1…SA-10（三层静态分析）与 RV-1…RV-4 结论齐全（`reports/v0.3.0/SUMMARY.md`）；CMake install RPATH 两阶段差异实证（`$ORIGIN` → `$ORIGIN/../lib`）；`verify_card.sh` 17 卡基线全回归 PASS。README 已注明当前仅 Linux 单平台，三 OS 见 M4–M6（Gate B）。
+
+## v0.2.0 (2026-11-16)
 
 - F-03-01 · CMakeLists 与 CTest：新增 `CMakeLists.txt`（`BUILD_SHARED_LIBS` 驱动四模式宏注入 generator expression、`POSITION_INDEPENDENT_CODE`、`VERSION/SOVERSION 1`、`WINDOWS_EXPORT_ALL_SYMBOLS OFF`（WIN32 挂 `.def`）、`BUILD_RPATH $ORIGIN` / `INSTALL_RPATH $ORIGIN/../lib`、`CMAKE_EXPORT_COMPILE_COMMANDS`）与 `tests/CMakeLists.txt`（`--self-test` 注册 CTest）；4 组合 × 2 形态 8 次 configure+build+ctest 全绿（x86 `-m32` / x64 `-m64`）。
 - F-03-02 · out-of-source / RPATH 断言与基线文档：`CMAKE_BUILD_RPATH_USE_ORIGIN` 使构建树 RUNPATH 为 `$ORIGIN`（并使 install 阶段 `file(RPATH_CHANGE)` 可靠改写为 `$ORIGIN/../lib`——实测 CMake 对绝对构建路径的改写会因格式不匹配报错）；`install(TARGETS …)` 落地；`analyze.sh` 以参数化 group 支持 `build/cmake/`（8 组合 SA 全绿，结论收齐 `reports/v0.3.0/`）；`docs/baseline.md` 补全 5.5–5.7（组合定义/客观约束/SA·RV 清单决策摘要）。
