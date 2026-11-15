@@ -2,7 +2,9 @@
 
 本文件记录 c-cpp-lib-lab 的所有显著变更。每个里程碑发布对应一个 `v<semver>` 附注 tag（落在 `main`），版本语义见 CONTRIBUTING.md「版本与 tag 策略」一节。
 
-## v0.7.0 (in progress)
+## v0.7.0 (2026-11-16)
+
+M7 里程碑发布：阶段 2（C++ 调 C 库）完成——`stage2/main.cpp` 未修饰名直调 extern "C" 接口（`U vmath_add` 实证）、`std::vector` data() 跨边界逐位一致（数据可传、类型不可跨）、空容器走 C 库错误分支；反例 `extern "C"` 缺失（`U _Z9vmath_adddd` + undefined reference 双证）与期望失败机制就绪。Linux 全实跑；mac/win 随 runner。下一里程碑纯 C++ OOP（M8，Gate B 完整达成）。
 
 - F-07-03 · `std::vector` 跨边界用例：`stage2/main.cpp` 增 `--self-test` 分派——`std::vector<double>::data()` 传入 `vmath_dot` 与纯 C 数组路径逐位一致（数据可传、类型不可跨）、空 vector 走 C 库错误分支（errno=VMATH_E_DIM 经访问器）而非 UB；C 库导出表 0 mangled 符号实测；三 OS 命令见 stage2/README.md（mac/win 随 runner）。
 
