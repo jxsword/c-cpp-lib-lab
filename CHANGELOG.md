@@ -6,6 +6,10 @@
 
 M0 里程碑发布：仓库骨架与 git flow（main/develop 受保护、SSH origin）、lint 门禁、CI 缓存基础设施（S1）、编码/换行规范与静态分析禁令基线（S6/S7，D9/D10 生效）全部就绪；`docs/PLAN.md`（v1.3.2）为唯一权威计划。Gate A 前置达成，下一里程碑进入纯 C 源码（M1）。
 
+## v0.3.0 (in progress)
+
+- F-03-01 · CMakeLists 与 CTest：新增 `CMakeLists.txt`（`BUILD_SHARED_LIBS` 驱动四模式宏注入 generator expression、`POSITION_INDEPENDENT_CODE`、`VERSION/SOVERSION 1`、`WINDOWS_EXPORT_ALL_SYMBOLS OFF`（WIN32 挂 `.def`）、`BUILD_RPATH $ORIGIN` / `INSTALL_RPATH $ORIGIN/../lib`、`CMAKE_EXPORT_COMPILE_COMMANDS`）与 `tests/CMakeLists.txt`（`--self-test` 注册 CTest）；4 组合 × 2 形态 8 次 configure+build+ctest 全绿（x86 `-m32` / x64 `-m64`）。
+
 ## v0.2.0 (2026-11-16)
 
 M2 里程碑发布：① 原生 Linux 4 组合 × 2 形态 8 个组合形态全绿（out-of-source、compile.log 记录、ELF32/64 实证）；三层静态分析框架（SA-1…SA-10）+ BFS 依赖树（readlink -f realpath 去重 + 符号链接链）+ RV-1…RV-4 运行输出通道（P5 隔离）；`scripts/verify_card.sh` 成为 D1 唯一断言入口（15 卡机器可执行基线，受限指令集设计）；`reports/v0.2.0/SUMMARY.md` 汇总。Gate A 推进中，下一里程碑 CMake（M3，Gate A 完成）。
