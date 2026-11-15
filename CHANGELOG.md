@@ -6,7 +6,9 @@
 
 M0 里程碑发布：仓库骨架与 git flow（main/develop 受保护、SSH origin）、lint 门禁、CI 缓存基础设施（S1）、编码/换行规范与静态分析禁令基线（S6/S7，D9/D10 生效）全部就绪；`docs/PLAN.md`（v1.3.2）为唯一权威计划。Gate A 前置达成，下一里程碑进入纯 C 源码（M1）。
 
-## v0.1.0 (in progress)
+## v0.1.0 (2026-11-15)
+
+M1 里程碑发布：纯 C 四模式（静态/建库/用库/直编）在 Linux gcc x64 单平台全绿；6 API 固定 ordinal 导出集与 5.2 断言一致；`reports/v0.1.0/SUMMARY.md` 完成 SA-1…SA-6 静态分析摘要（其余 N/A）。Gate A 推进中，下一里程碑进入原生 Linux 组合与静态分析框架（M2）。
 
 - F-01-01 · 导出宏头：新增 `include/calc_export.h`——①平台判定 ②`CALC_EXTERN_C_BEGIN/END` ③`CALC_STATIC`/`CALC_BUILD_DLL`/`CALC_USE_DLL`/`CALC_NO_LIB` 四模式分派 ④32 位 Windows `CALC_CALL=__cdecl`（禁 `__stdcall`，保证 `.def` 未修饰名可寻址）⑤不导出任何数据符号 ⑥`CALC_DEPRECATED(msg)`。
 - F-01-02 · 公共 API 与 `.def`：新增 `include/vmath.h`（恰 6 个导出函数 + `vmath_log_fn` 回调类型 + 裸数据符号教学对照，`extern "C"` 全包裹）与 `def/vmath.def`（ordinal 固定 1–6、`@5 NONAME`、不含错误码裸符号与任何数据符号声明）。
