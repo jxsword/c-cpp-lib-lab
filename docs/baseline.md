@@ -127,3 +127,37 @@
 |---|---|---|
 | `static-with-dllimport/consumer.c` | ELF（模拟 PE `__imp_` 语义） | `__imp_vmath_add` 未解析 |
 | `pe-def-missing/consumer.c` | PE | 静态库消费侧误开 dllimport：`__imp_` 未解析（MSVC LNK2019 同型） |
+
+## 安全章节：同名动态库劫持与加固（F-09-08）
+
+### 攻击面
+
+| # | 攻击面 | 说明 |
+|---|---|---|
+| 1 | 搜索路径优先级 | `LD_LIBRARY_PATH` > RUNPATH（ELF）；PATH 前置目录（PE） |
+| 2 | `LD_PRELOAD` / `DYLD_INSERT_LIBRARIES` | 运行期注入任意库 |
+| 3 | PATH 前置目录 | PE 搜索顺序末位的 PATH 可被污染 |
+| 4 | 相对 RPATH / 空元素 | `$ORIGIN` 外的相对路径可被 CWD 劫持 |
+| 5 | 未固定 ordinal 的 DLL 版本替换 | 同名不同源 DLL 替换 |
+| 6 | 当前目录历史前置 | 老 Windows SafeDllSearchMode 前的行为 |
+
+### 防御清单（≥8 条）
+
+1. **绝对路径加载**：`LoadLibraryA(<full path>)` / `dlopen(<abs>)`（F-04-03 实装）。
+2. **rpath 收紧**：`$ORIGIN`/`@rpath` 固定，无相对路径、无空元素（F-03-02 实证）。
+3. **Windows**：`SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_APPLICATION_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32)` 收敛搜索面。
+4. **哈希校验**：部署侧 SHA256 比对库文件（demo after 模式实测）。
+5. **代码签名**：macOS `codesign --deep -s -`（Hardened Runtime 可升正式签名）；Windows Authenticode。
+6. **干净环境运行**：`env -i`（等价 AT_SECURE 行为）——特权程序忽略 `LD_*`。
+7. **特权程序额外规则**：Linux `AT_SECURE`（内核置位后 glibc 忽略 `LD_PRELOAD`/`LD_LIBRARY_PATH`、限制 `$ORIGIN` 部分场景）；macOS SIP / Hardened Runtime 清除 `DYLD_*` 注入。
+8. **静态审计项**：SA-10 搜索路径断言（无相对不安全路径）+ 5.8.4 扫描（分析/构建脚本无动态注入类调用）。
+9. **打包加固**：bundle 只带自有库、系统库不打（9.1）+ 库侧 `release()` 所有权清晰（F-08-03）。
+
+### 演示执行
+
+```bash
+./scripts/linux/security_hijack_demo.sh before   # 劫持面复现（RV 通道）
+./scripts/linux/security_hijack_demo.sh after    # 加固对照（哈希校验 + 干净环境 + rpath）
+```
+
+演示脚本属 RV 通道（P5/C18）；不修改系统目录、不写全局环境变量（全部在 /tmp）。

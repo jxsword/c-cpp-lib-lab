@@ -1,0 +1,35 @@
+# tests/assertions/F-09-08.yml — F-09-08 断言基线
+card: F-09-08
+checks:
+  - id: A1-before-demo
+    action: run
+    args: ./scripts/linux/security_hijack_demo.sh before
+    expect: exit0
+  - id: A2-after-demo-hash-verified
+    action: run
+    args: ./scripts/linux/security_hijack_demo.sh after
+    expect: regex:library.hash.verified
+  - id: A2b-clean-env
+    action: run
+    args: ./scripts/linux/security_hijack_demo.sh after
+    expect: regex:clean-env.self-test.OK
+  - id: A4-defenses-8-plus
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq 防御清单 docs/baseline.md
+    expect: exit0
+  - id: A4b-privileged-programs
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq AT_SECURE docs/baseline.md
+    expect: exit0
+  - id: A5-scan-still-clean
+    action: run
+    args: ./scripts/tools/scan_dynamic_calls.sh
+    expect: exit0
+  - id: three-os-demos-exist
+    action: run
+    args: ls scripts/linux/security_hijack_demo.sh scripts/macos/security_hijack_demo.sh scripts/windows/security_hijack_demo.ps1
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-09-08
+    expect: exit0
