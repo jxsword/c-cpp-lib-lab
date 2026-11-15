@@ -2,7 +2,7 @@
 # smoke_four_modes.sh — 四模式冒烟（F-01-06；M1–M4 各编译一次 + 反例期望失败）
 # 用法: smoke_four_modes.sh <compiler> <variant> <cfg>    例: ./smoke_four_modes.sh gcc x64 Release
 # 产物全部落在 build/native/smoke/<os>_<compiler>_<variant>_<cfg>/（out-of-source）。
-# 本脚本不调用 gh（9.4 J7）；不使用任何动态加载 / 依赖解析执行类手段（5.8.4，
+# 本脚本不调用 GitHub CLI（9.4 J7）；不使用任何动态加载 / 依赖解析执行类手段（5.8.4，
 # readelf 属静态检查、为 A2 明确要求）。
 set -u
 
