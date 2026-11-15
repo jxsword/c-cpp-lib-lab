@@ -1,0 +1,155 @@
+name: 'setup-env'
+description: >-
+  Package install + per-combination cache restore/save (S1 / PLAN 5.9.2, K1-K8).
+  Covers all 7 cache object classes: apt debs, Linux ccache, Homebrew downloads,
+  macOS ccache, MSYS2 pacman (internal), Windows tools, Windows sccache.
+  MSVC toolset & Windows SDK are NOT cached (runner-preinstalled; too large, no benefit).
+
+inputs:
+  toolset:
+    description: 'gcc | clang | msvc | msys2 | clang-cl (PLAN 5.5)'
+    required: true
+  variant:
+    description: 'x86 | x64 | x86_MD | x86_MT | x64_MD | x64_MT | MINGW64 | MINGW32 | CLANG64 | UCRT64 | arm64 (PLAN 1.3)'
+    required: true
+  cfg:
+    description: 'Debug | Release'
+    required: true
+  kind:
+    description: 'static | shared (P3: in-combination dual form)'
+    required: false
+    default: 'static'
+
+outputs:
+  cache-hit:
+    description: 'compile cache (ccache/sccache) hit of this invocation'
+    value: ${{ steps.cc-cache.outputs.cache-hit || steps.sccache.outputs.cache-hit }}
+  apt-cache-hit:
+    description: 'Linux apt deb cache hit'
+    value: ${{ steps.apt-cache.outputs.cache-hit }}
+  brew-cache-hit:
+    description: 'macOS Homebrew download cache hit'
+    value: ${{ steps.brew-cache.outputs.cache-hit }}
+  win-tools-cache-hit:
+    description: 'Windows tools (LLVM/Ninja/CMake/Dependencies CLI) cache hit'
+    value: ${{ steps.win-tools.outputs.cache-hit }}
+  sccache-cache-hit:
+    description: 'Windows sccache cache hit'
+    value: ${{ steps.sccache.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+
+    # ── 1/7 Linux: apt deb 包（5.9.2 行 1；actions/cache@v4 机制，PLAN 允许二选一）──
+    - name: Cache apt debs
+      id: apt-cache
+      if: runner.os == 'Linux'
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt/archives
+        key: apt-${{ runner.os }}-${{ hashFiles('.github/apt-packages.txt') }}
+        save-always: true
+
+    - name: Install apt packages
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo xargs -a .github/apt-packages.txt apt-get install -y --no-install-recommends
+
+    # ── 2/7 Linux: ccache 编译缓存（K1：OS+toolset+variant+cfg+kind；K3：同前缀回退）──
+    - name: Cache Linux ccache
+      id: cc-cache
+      if: runner.os == 'Linux'
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: cc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-${{ github.run_id }}
+        restore-keys: cc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-
+        save-always: true
+
+    # ── 3/7 macOS: Homebrew 下载缓存 ────────────────────────────────────────────
+    - name: Cache Homebrew downloads
+      id: brew-cache
+      if: runner.os == 'macOS'
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/Library/Caches/Homebrew
+          ~/.brew-cache
+        key: brew-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/brew-packages.txt') }}
+        save-always: true
+
+    - name: Install brew packages
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        xargs -a .github/brew-packages.txt brew install
+
+    # ── 4/7 macOS: ccache 编译缓存（K1 同上）────────────────────────────────────
+    - name: Cache macOS ccache
+      id: mccache
+      if: runner.os == 'macOS'
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ccache
+        key: cc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-${{ github.run_id }}
+        restore-keys: cc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-
+        save-always: true
+
+    # ── 5/7 Windows: MSYS2 pacman 包（setup-msys2 内部缓存，按 msystem 管理）─────
+    - name: Setup MSYS2 with pacman cache
+      id: msys2
+      if: runner.os == 'Windows' && startsWith(inputs.toolset, 'msys2')
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ inputs.variant }}
+        cache: true
+        update: false
+        install: >-
+          git
+          make
+
+    # ── 6/7 Windows: LLVM / Ninja / CMake / Dependencies CLI 工具缓存 ───────────
+    - name: Cache Windows tools
+      id: win-tools
+      if: runner.os == 'Windows'
+      uses: actions/cache@v4
+      with:
+        path: |
+          C:\tools\llvm
+          C:\tools\ninja
+          C:\tools\deps
+        key: win-tools-${{ inputs.toolset }}-${{ hashFiles('.github/tool-versions.env') }}
+        save-always: true
+
+    # ── 7/7 Windows: sccache 编译缓存（K1 同上）─────────────────────────────────
+    - name: Cache Windows sccache
+      id: sccache
+      if: runner.os == 'Windows'
+      uses: actions/cache@v4
+      with:
+        path: ~\AppData\Local\sccache
+        key: sc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-${{ github.run_id }}
+        restore-keys: sc-${{ runner.os }}-${{ inputs.toolset }}-${{ inputs.variant }}-${{ inputs.cfg }}-${{ inputs.kind }}-
+        save-always: true
+
+    # ── K5：命中/未命中写入 $GITHUB_STEP_SUMMARY ────────────────────────────────
+    - name: Report cache hits to job summary
+      if: always()
+      shell: bash
+      run: |
+        {
+          echo '### Cache hits（K5）'
+          echo "| 对象 | key | hit |"
+          echo "|---|---|---|"
+          echo "| apt debs | ${{ steps.apt-cache.outputs.cache-primary-key || '-' }} | ${{ steps.apt-cache.outputs.cache-hit || 'n/a' }} |"
+          echo "| ccache | ${{ steps.cc-cache.outputs.cache-primary-key || steps.mccache.outputs.cache-primary-key || '-' }} | ${{ steps.cc-cache.outputs.cache-hit || steps.mccache.outputs.cache-hit || 'n/a' }} |"
+          echo "| Homebrew | ${{ steps.brew-cache.outputs.cache-primary-key || '-' }} | ${{ steps.brew-cache.outputs.cache-hit || 'n/a' }} |"
+          echo "| MSYS2 pacman | (setup-msys2 内部管理) | ${{ steps.msys2.outputs.msys2-cache-hit || 'n/a' }} |"
+          echo "| win tools | ${{ steps.win-tools.outputs.cache-primary-key || '-' }} | ${{ steps.win-tools.outputs.cache-hit || 'n/a' }} |"
+          echo "| sccache | ${{ steps.sccache.outputs.cache-primary-key || '-' }} | ${{ steps.sccache.outputs.cache-hit || 'n/a' }} |"
+          echo ""
+          echo '> 不缓存：MSVC 工具集与 Windows SDK（runner 预装；体积过大、缓存无收益）——PLAN 5.9.2'
+        } >> "$GITHUB_STEP_SUMMARY"
