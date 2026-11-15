@@ -1,0 +1,25 @@
+# tests/assertions/F-09-04.yml — F-09-04 断言基线
+# A2/A3 dispatch 实测登记 R-09 批量执行（默认分支硬约束）；
+# 本 yml 为本地可执行机器子集。
+card: F-09-04
+checks:
+  - id: A1-three-files-exist
+    action: run
+    args: ls .github/workflows/cmake-linux.yml .github/workflows/cmake-macos.yml .github/workflows/cmake-windows.yml
+    expect: exit0
+  - id: A1-windows-36-rows
+    action: script
+    args: ./scripts/tools/assert_tree.sh wfcount .github/workflows/cmake-windows.yml 36
+    expect: exit0
+  - id: A2-ninja-in-windows-cmake
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq -G Ninja scripts/windows/cmake.ps1
+    expect: exit0
+  - id: A5-runtime-linkage-in-combo
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq CMAKE_MSVC_RUNTIME_LIBRARY .github/workflows/_combo.yml
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-09-04
+    expect: exit0

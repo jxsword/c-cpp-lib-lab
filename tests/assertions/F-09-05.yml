@@ -1,0 +1,37 @@
+# tests/assertions/F-09-05.yml — F-09-05 断言基线
+# A1/A2/A3/A4 的 dispatch 实测登记 R-09 批量执行（默认分支硬约束）；
+# 本 yml 为本地可执行机器子集（A5 80 行矩阵 + 六类差异 + 结构断言）。
+card: F-09-05
+checks:
+  - id: A1-two-workflows-exist
+    action: run
+    args: ls .github/workflows/analyze.yml .github/workflows/run-output.yml
+    expect: exit0
+  - id: A1b-independent-dispatch
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq workflow_dispatch .github/workflows/analyze.yml
+    expect: exit0
+  - id: A5-summary-80-rows
+    action: script
+    args: ./scripts/tools/assert_tree.sh countmatch ^\|[[:space:]][0-9]+[[:space:]]\|[[:space:]](linux|macos|win) reports/v1.0.0/SUMMARY.md 80
+    expect: exit0
+  - id: A5b-group-identifiers
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq 24 / 32 / 24 reports/v0.6.0/SUMMARY.md
+    expect: exit0
+  - id: A5c-six-differences
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq 六类跨平台差异 reports/v1.0.0/SUMMARY.md
+    expect: exit0
+  - id: A6-scan-step-in-analyze
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq scan_dynamic_calls.sh .github/workflows/analyze.yml
+    expect: exit0
+  - id: summarize-script-exists
+    action: exists
+    args: scripts/summarize_reports.sh
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-09-05
+    expect: exit0

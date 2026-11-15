@@ -2,6 +2,28 @@
 
 本文件记录 c-cpp-lib-lab 的所有显著变更。每个里程碑发布对应一个 `v<semver>` 附注 tag（落在 `main`），版本语义见 CONTRIBUTING.md「版本与 tag 策略」一节。
 
+## v1.0.0 (2026-11-16) · Gate C
+
+M9 里程碑发布，**Gate C 达成，计划收官**：CI 工作流体系（16 文件：lint + _env/_combo 可复用 + 3 组 10 条可 dispatch 组合工作流 + analyze/run-output + all.yml 全量 80 编排）+ 打包三 OS（解压即用）+ 安全演示（劫持复现/加固对照/9 条防御清单）+ `docs/REPORT.md` 十章证据版总报告 + `verify_card --all` 43 卡基线全回归。Linux 侧全实跑；mac/win 产物级实证由各 OS runner dispatch 承接（R-09 收尾批量执行——默认分支硬约束）。对应 tag：v0.0.0…v0.8.0 共 9 个 + 本 v1.0.0 = 10 个里程碑 tag。
+
+- F-09-09 · 汇总报告与发布：新增 `docs/REPORT.md`（10 章节 + 待拍板项 P3–P8 取值，每节带 reports/ 实测证据）；README 终版（快速开始/80 矩阵/工作流索引）；`verify_card.sh` 增 `--all` 遍历回归入口（43 卡全 PASS）。
+
+- F-09-08 · 安全演示：新增 `scripts/{linux,macos,windows}/security_hijack_demo.*`（RV 通道）——Linux **before/after 双模式实测**（before：LD_LIBRARY_PATH 前置同名库劫持面复现 + `LD_LIBRARY_PATH 优先于 RUNPATH` 静态对照结论；after：SHA256 库哈希校验 + `env -i` 干净环境自测（等价 AT_SECURE）+ rpath `$ORIGIN` 固定确认）；`docs/baseline.md` 安全章节（攻击面 6 项 + 防御清单 9 条 + AT_SECURE/SIP/Hardened Runtime 特权规则）；mac/win 演示要点版随 runner。
+
+- F-09-07 · 打包脚本：新增 `scripts/{linux,macos,windows}/bundle.*`——Linux 实测全绿（`$ORIGIN/../lib` + 自带 so + patchelf rpath 收紧 + strip + `readelf -d` 静态复核（自带库 realpath/系统库不打/无 Debug 副本）+ LICENSE/NOTICE 随包 + 切 CWD 自测）；macOS（.app + install_name_tool/codesign）与 Windows（平铺 DLL + dumpbin 复核 + 排除 *d.dll）脚本就绪待 runner；`calctool --bundle` 保持桩（打包由 bundle 脚本承担）。
+
+- F-09-06 · `all.yml` 全量 80 组合编排（S5 收口）：10 条组合 workflow 全部补 `workflow_call` 触发器；新增 `all.yml`（workflow_dispatch → uses 12 条（10 组合 + analyze + run-output）→ `summary` job 汇总三组 24/32/24 结果、K6 缓存复用说明、`FAILED_GROUPS` 失败定位（A6 标红+给 group/os）、all-reports artifact）；全量 80 实跑与干净机 job 登记 R-09 批量执行（runner 时长 + 默认分支约束）。
+
+- F-09-05 · 静态分析与运行输出工作流（S7/S8）：新增 `analyze.yml`（独立 dispatch：重建 → 三层 SA → SA 矩阵入 Job Summary → artifact）与 `run-output.yml`（独立 dispatch：RV-1…RV-4 采集 → **程序实际输出进 $GITHUB_STEP_SUMMARY 代码块**（A4）→ artifact），互不依赖；`scripts/summarize_reports.sh` 生成 `reports/v1.0.0/SUMMARY.md` 80 组合行（24/32/24 分组）+ 六类跨平台差异标注表（默认导出/ordinal/CRT/Debug-Release/mangling/macOS 架构）；dispatch 实测登记 R-09 批量执行。
+
+- F-09-04 · Group C cmake 组 3 条工作流（24 组合）：新增 `cmake-{linux,macos}.yml`（6 组合）+ `cmake-windows.yml`（msvc 8 + msys2 8 + clang-cl 2 = 18，36 形态行）；`_combo.yml` 的 cmake/windows 分支补真实构建（msvc/clang-cl 强制 `-G Ninja`（S9）+ `CMAKE_MSVC_RUNTIME_LIBRARY` 按 variant 注入，msys2 走 MinGW 生成器）；脚本化核验 4+2+18=24 无重复；dispatch 实测登记 R-09 批量执行。
+
+- F-09-03 · Group M make 组 4 条工作流（32 组合）：新增 `make-{linux,macos}.yml`（GNU make 6 组合）+ `make-windows.yml`（msys2 GNU make 8 + nmake 10，双 job）+ `msbuild-windows.yml`（8）；`_combo.yml` 补 `make/gnu`（Makefile 驱动）、`make/msys2`（各环境 make.exe + --out-implib）、`make/nmake`/`make/msbuild`（nmake.ps1/msbuild.ps1）构建分支；脚本化核验 14+10+8=32 无重复；dispatch 实测登记 R-09 批量执行。
+
+- F-09-02 · Group N 原生组 3 条工作流（24 组合）：新增 `native-{linux,macos,windows}.yml`（各自 `workflow_dispatch` + inputs 过滤（缺省全量）、`fail-fast: false`、matrix include 展开 → `_combo.yml`、`group: native`）——Linux 4 + macOS 2 + Windows 18（msvc 8 + msys2 8 + clang-cl 2）脚本化核验 24 组合无重复；dispatch 实测（A2/A3/A4）登记 R-09 收尾批量执行（默认分支硬约束）。
+
+- F-09-01 · 可复用环境/组合工作流与全量缓存（S1/S5）：新增 `.github/workflows/_env.yml`（workflow_call 调 setup-env composite，输出 cache-hit）与 `_combo.yml`（workflow_call + workflow_dispatch；构建 → RV → SA → 禁令扫描 → 结论 Job Summary → artifact 五 step，RV/SA 分 step 隔离，仅 Release 上传 reports-* artifact；make 组与 windows 组由专属 workflow 承接）；A3 dispatch 双跑取证登记 R-09 收尾动作（workflow_dispatch 要求文件在默认分支的 GitHub 硬约束）。
+
 ## v0.8.0 (2026-11-16) · Gate B 达成
 
 M8 里程碑发布，**Gate B 完整达成**：阶段 3（纯 C++ OOP）完成——`Vector`/`Statistics`（组合式、STL 留边界内、恰好 3源/2头）、`extern "C"` 门面 + 纯虚 vtable 契约（C 消费者零 C++ 符号依赖）、STL 跨 CRT 反例（MSVC 专属，SKIP 口径）与 ABI 面实测对比（类直出 16 mangled vs 门面 8 C 名）。三阶段语言演进（纯 C → C++ 调 C → 纯 C++ OOP）全部落档。下一里程碑 M9（Gate C）：3 组 CI + 全量 80 + 打包 + 安全 + 报告。

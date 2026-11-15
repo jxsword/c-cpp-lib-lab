@@ -26,6 +26,34 @@
 | `reports/` | 各里程碑静态分析 / 运行验证报告（`reports/<tag>/...`） |
 | `build/`、`out/` | 构建产物（被 `.gitignore` 忽略，永不入库） |
 
+## 快速开始
+
+```bash
+# ① 原生构建（任一组合）
+./scripts/linux/native.sh x64 Release shared
+build/native/linux_gcc_x64_Release/shared/calctool --self-test
+
+# ② CMake 构建
+./scripts/linux/cmake.sh x64 Release shared
+
+# ③ GNU make 构建
+mkdir -p build/make/gnu/linux_gcc_x64_Release/static && cd $_
+make -f $(pwd)/../../../../../Makefile srcdir=$(pwd)/../../../../../ VARIANT=x64 CFG=Release KIND=static selftest
+
+# ④ 打包（解压即用）
+./scripts/linux/bundle.sh linux_gcc_x64_Release shared native
+```
+
+## 80 组合构建矩阵
+
+| 组 | 方言 | 组合数 |
+|---|---|---|
+| ① 原生 | gcc / msvc / msys2×4 / clang-cl / apple-clang | 24 |
+| ② make | GNU make 14 + nmake 10 + MSBuild 8 | 32 |
+| ③ CMake | msvc/clang-cl 用 Ninja | 24 |
+
+每组合内 `static/` + `shared/` 双形态（P3）。CI 三组工作流索引见 `.github/workflows/`（`native-*` / `make-*` / `msbuild-*` / `cmake-*` 各可单独 dispatch；`all.yml` 全量编排；`analyze.yml`/`run-output.yml` 独立取证）。
+
 ## 当前范围
 
 **当前仅 Linux 单平台**（native + CMake 两种构建方式 × gcc x86/x64 × Debug/Release × static/shared）。三 OS（Windows msvc/msys2/clang-cl、macOS）与 make 组（GNU make/nmake/MSBuild）见里程碑 M4–M6（Gate B），make 组属 M5、CMake 三 OS 属 M6。
@@ -40,6 +68,6 @@
 
 ## 状态
 
-- 当前里程碑：M3（`v0.3.0` Gate A，详见 [CHANGELOG.md](CHANGELOG.md) 与 [reports/v0.3.0/SUMMARY.md](reports/v0.3.0/SUMMARY.md)）
+- 当前里程碑：v1.0.0（Gate C，总报告见 [docs/REPORT.md](docs/REPORT.md)；各里程碑摘要见 `reports/vX.Y.Z/SUMMARY.md`）
 - 分支模型：git flow —— `main` 受保护（只接受 PR），`develop` 集成主线，feature 一卡一分支
 - 许可：MIT（见 [LICENSE](LICENSE)）

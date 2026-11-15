@@ -1,0 +1,29 @@
+# tests/assertions/F-09-03.yml — F-09-03 断言基线
+# A2/A3 dispatch 实测登记 R-09 批量执行（默认分支硬约束）；
+# 本 yml 为本地可执行机器子集（A1 32 组合口径 + A4 结构断言）。
+card: F-09-03
+checks:
+  - id: A1-four-files-exist
+    action: run
+    args: ls .github/workflows/make-linux.yml .github/workflows/make-macos.yml .github/workflows/make-windows.yml .github/workflows/msbuild-windows.yml
+    expect: exit0
+  - id: A1-gnu-14-msys2-8
+    action: script
+    args: ./scripts/tools/assert_tree.sh wfcount .github/workflows/make-windows.yml 36
+    expect: exit0
+  - id: A1b-msbuild-16-rows
+    action: script
+    args: ./scripts/tools/assert_tree.sh wfcount .github/workflows/msbuild-windows.yml 16
+    expect: exit0
+  - id: A4-nmake-branch-in-combo
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq make/nmake) .github/workflows/_combo.yml
+    expect: exit0
+  - id: A4b-msbuild-branch-in-combo
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq make/msbuild) .github/workflows/_combo.yml
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-09-03
+    expect: exit0

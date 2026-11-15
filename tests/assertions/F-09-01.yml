@@ -1,0 +1,37 @@
+# tests/assertions/F-09-01.yml — F-09-01 断言基线
+# A3 的 dispatch 双跑取证需 workflow 文件在默认分支（GitHub 硬约束）——
+# 登记 R-09 收尾动作（release 合入 main 后 dispatch _combo 两次，第二次 cache-hit）。
+card: F-09-01
+checks:
+  - id: A1-workflow-call-and-inputs
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq workflow_call .github/workflows/_combo.yml
+    expect: exit0
+  - id: A1b-env-inputs
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq toolset .github/workflows/_env.yml
+    expect: exit0
+  - id: A2-reuses-setup-env
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq actions/setup-env .github/workflows/_env.yml
+    expect: exit0
+  - id: A4-rv-sa-separate-steps
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq RV run output capture .github/workflows/_combo.yml
+    expect: exit0
+  - id: A4b-sa-separate-step
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq SA static analysis .github/workflows/_combo.yml
+    expect: exit0
+  - id: A5-release-only-artifact
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq cfg == 'Release' .github/workflows/_combo.yml
+    expect: exit0
+  - id: A6-scan-in-ci-step
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq scan_dynamic_calls.sh .github/workflows/_combo.yml
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-09-01
+    expect: exit0

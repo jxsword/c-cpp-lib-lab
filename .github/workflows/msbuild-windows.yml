@@ -1,0 +1,46 @@
+# msbuild-windows.yml —— Group M·MSBuild 8 组合（F-09-03；PLAN 8.2）
+name: msbuild-windows
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      toolset: { description: 'msbuild', default: 'msbuild' }
+      variant: { description: 'x86_MD|x86_MT|x64_MD|x64_MT（空=全量）', default: '' }
+      cfg: { description: 'Debug|Release（空=全量）', default: '' }
+      kind: { description: 'static|shared（空=全量）', default: '' }
+
+jobs:
+  matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { variant: x86_MD, cfg: Debug, kind: static }
+          - { variant: x86_MD, cfg: Debug, kind: shared }
+          - { variant: x86_MD, cfg: Release, kind: static }
+          - { variant: x86_MD, cfg: Release, kind: shared }
+          - { variant: x86_MT, cfg: Debug, kind: static }
+          - { variant: x86_MT, cfg: Debug, kind: shared }
+          - { variant: x86_MT, cfg: Release, kind: static }
+          - { variant: x86_MT, cfg: Release, kind: shared }
+          - { variant: x64_MD, cfg: Debug, kind: static }
+          - { variant: x64_MD, cfg: Debug, kind: shared }
+          - { variant: x64_MD, cfg: Release, kind: static }
+          - { variant: x64_MD, cfg: Release, kind: shared }
+          - { variant: x64_MT, cfg: Debug, kind: static }
+          - { variant: x64_MT, cfg: Debug, kind: shared }
+          - { variant: x64_MT, cfg: Release, kind: static }
+          - { variant: x64_MT, cfg: Release, kind: shared }
+    if: >-
+      (inputs.variant == '' || inputs.variant == matrix.variant) &&
+      (inputs.cfg == '' || inputs.cfg == matrix.cfg) &&
+      (inputs.kind == '' || inputs.kind == matrix.kind)
+    uses: ./.github/workflows/_combo.yml
+    with:
+      os: windows
+      toolset: msbuild
+      variant: ${{ matrix.variant }}
+      cfg: ${{ matrix.cfg }}
+      kind: ${{ matrix.kind }}
+      group: make/msbuild

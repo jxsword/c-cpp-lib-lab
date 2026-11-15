@@ -1,0 +1,29 @@
+# tests/assertions/F-09-02.yml — F-09-02 断言基线
+# A2/A3/A4 的 dispatch 实测需 workflow 文件在默认分支——登记 R-09 收尾批量执行；
+# 本 yml 为本地可执行机器子集（A1 覆盖数/无重复 + A4 结构断言）。
+card: F-09-02
+checks:
+  - id: A1-three-files-exist
+    action: run
+    args: ls .github/workflows/native-linux.yml .github/workflows/native-macos.yml .github/workflows/native-windows.yml
+    expect: exit0
+  - id: A1-coverage-24-no-dup
+    action: script
+    args: ./scripts/tools/assert_tree.sh wfcount .github/workflows/native-windows.yml 36
+    expect: exit0
+  - id: A4-uses-env-reusable
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq _combo.yml .github/workflows/native-linux.yml
+    expect: exit0
+  - id: A4b-fail-fast-false
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq fail-fast: false .github/workflows/native-windows.yml
+    expect: exit0
+  - id: A4c-group-native
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq group: native .github/workflows/native-macos.yml
+    expect: exit0
+  - id: D6-checklist-checked
+    action: script
+    args: ./scripts/tools/assert_tree.sh cardchecked F-09-02
+    expect: exit0

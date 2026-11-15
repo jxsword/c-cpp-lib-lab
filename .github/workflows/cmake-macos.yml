@@ -1,0 +1,34 @@
+# cmake-macos.yml —— Group C·CMake macOS 2 组合（F-09-04；CMAKE_OSX_ARCHITECTURES=arm64）
+name: cmake-macos
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      toolset: { description: 'clang', default: 'clang' }
+      variant: { description: 'arm64（空=全量）', default: '' }
+      cfg: { description: 'Debug|Release（空=全量）', default: '' }
+      kind: { description: 'static|shared（空=全量）', default: '' }
+
+jobs:
+  matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { variant: arm64, cfg: Debug, kind: static }
+          - { variant: arm64, cfg: Debug, kind: shared }
+          - { variant: arm64, cfg: Release, kind: static }
+          - { variant: arm64, cfg: Release, kind: shared }
+    if: >-
+      (inputs.variant == '' || inputs.variant == matrix.variant) &&
+      (inputs.cfg == '' || inputs.cfg == matrix.cfg) &&
+      (inputs.kind == '' || inputs.kind == matrix.kind)
+    uses: ./.github/workflows/_combo.yml
+    with:
+      os: macos
+      toolset: clang
+      variant: ${{ matrix.variant }}
+      cfg: ${{ matrix.cfg }}
+      kind: ${{ matrix.kind }}
+      group: cmake

@@ -1,0 +1,39 @@
+# native-linux.yml —— Group N·Linux 4 组合（F-09-02；PLAN 8.2）
+# 可单独 dispatch；inputs 过滤（缺省 = 全量）；matrix 经 _combo.yml 展开；fail-fast: false。
+name: native-linux
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      toolset: { description: 'gcc（Linux 仅 gcc）', default: 'gcc' }
+      variant: { description: 'x86|x64（空=全量）', default: '' }
+      cfg: { description: 'Debug|Release（空=全量）', default: '' }
+      kind: { description: 'static|shared（空=全量）', default: '' }
+
+jobs:
+  matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { variant: x86, cfg: Debug, kind: static }
+          - { variant: x86, cfg: Debug, kind: shared }
+          - { variant: x86, cfg: Release, kind: static }
+          - { variant: x86, cfg: Release, kind: shared }
+          - { variant: x64, cfg: Debug, kind: static }
+          - { variant: x64, cfg: Debug, kind: shared }
+          - { variant: x64, cfg: Release, kind: static }
+          - { variant: x64, cfg: Release, kind: shared }
+    if: >-
+      (inputs.variant == '' || inputs.variant == matrix.variant) &&
+      (inputs.cfg == '' || inputs.cfg == matrix.cfg) &&
+      (inputs.kind == '' || inputs.kind == matrix.kind)
+    uses: ./.github/workflows/_combo.yml
+    with:
+      os: linux
+      toolset: gcc
+      variant: ${{ matrix.variant }}
+      cfg: ${{ matrix.cfg }}
+      kind: ${{ matrix.kind }}
+      group: native

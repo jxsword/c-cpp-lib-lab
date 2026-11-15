@@ -1,0 +1,70 @@
+# cmake-windows.yml —— Group C·CMake Windows 18 组合（F-09-04；msvc/clang-cl 强制 Ninja，S9）
+name: cmake-windows
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      toolset: { description: 'msvc|msys2|clang-cl（空=全部）', default: '' }
+      variant: { description: '变体（空=全量）', default: '' }
+      cfg: { description: 'Debug|Release（空=全量）', default: '' }
+      kind: { description: 'static|shared（空=全量）', default: '' }
+
+jobs:
+  matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # msvc 8（Ninja + CMAKE_MSVC_RUNTIME_LIBRARY）
+          - { toolset: msvc, variant: x86_MD, cfg: Debug, kind: static }
+          - { toolset: msvc, variant: x86_MD, cfg: Debug, kind: shared }
+          - { toolset: msvc, variant: x86_MD, cfg: Release, kind: static }
+          - { toolset: msvc, variant: x86_MD, cfg: Release, kind: shared }
+          - { toolset: msvc, variant: x86_MT, cfg: Debug, kind: static }
+          - { toolset: msvc, variant: x86_MT, cfg: Debug, kind: shared }
+          - { toolset: msvc, variant: x86_MT, cfg: Release, kind: static }
+          - { toolset: msvc, variant: x86_MT, cfg: Release, kind: shared }
+          - { toolset: msvc, variant: x64_MD, cfg: Debug, kind: static }
+          - { toolset: msvc, variant: x64_MD, cfg: Debug, kind: shared }
+          - { toolset: msvc, variant: x64_MD, cfg: Release, kind: static }
+          - { toolset: msvc, variant: x64_MD, cfg: Release, kind: shared }
+          - { toolset: msvc, variant: x64_MT, cfg: Debug, kind: static }
+          - { toolset: msvc, variant: x64_MT, cfg: Debug, kind: shared }
+          - { toolset: msvc, variant: x64_MT, cfg: Release, kind: static }
+          - { toolset: msvc, variant: x64_MT, cfg: Release, kind: shared }
+          # msys2 四环境 8
+          - { toolset: msys2, variant: MINGW64, cfg: Debug, kind: static }
+          - { toolset: msys2, variant: MINGW64, cfg: Debug, kind: shared }
+          - { toolset: msys2, variant: MINGW64, cfg: Release, kind: static }
+          - { toolset: msys2, variant: MINGW64, cfg: Release, kind: shared }
+          - { toolset: msys2, variant: MINGW32, cfg: Debug, kind: static }
+          - { toolset: msys2, variant: MINGW32, cfg: Debug, kind: shared }
+          - { toolset: msys2, variant: MINGW32, cfg: Release, kind: static }
+          - { toolset: msys2, variant: MINGW32, cfg: Release, kind: shared }
+          - { toolset: msys2, variant: CLANG64, cfg: Debug, kind: static }
+          - { toolset: msys2, variant: CLANG64, cfg: Debug, kind: shared }
+          - { toolset: msys2, variant: CLANG64, cfg: Release, kind: static }
+          - { toolset: msys2, variant: CLANG64, cfg: Release, kind: shared }
+          - { toolset: msys2, variant: UCRT64, cfg: Debug, kind: static }
+          - { toolset: msys2, variant: UCRT64, cfg: Debug, kind: shared }
+          - { toolset: msys2, variant: UCRT64, cfg: Release, kind: static }
+          - { toolset: msys2, variant: UCRT64, cfg: Release, kind: shared }
+          # clang-cl 2（Ninja）
+          - { toolset: clang-cl, variant: x64, cfg: Debug, kind: static }
+          - { toolset: clang-cl, variant: x64, cfg: Debug, kind: shared }
+          - { toolset: clang-cl, variant: x64, cfg: Release, kind: static }
+          - { toolset: clang-cl, variant: x64, cfg: Release, kind: shared }
+    if: >-
+      (inputs.toolset == '' || inputs.toolset == matrix.toolset) &&
+      (inputs.variant == '' || inputs.variant == matrix.variant) &&
+      (inputs.cfg == '' || inputs.cfg == matrix.cfg) &&
+      (inputs.kind == '' || inputs.kind == matrix.kind)
+    uses: ./.github/workflows/_combo.yml
+    with:
+      os: windows
+      toolset: ${{ matrix.toolset }}
+      variant: ${{ matrix.variant }}
+      cfg: ${{ matrix.cfg }}
+      kind: ${{ matrix.kind }}
+      group: cmake
