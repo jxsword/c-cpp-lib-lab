@@ -67,8 +67,11 @@
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)' == 'Release'">
     <ClCompile>
-      <!-- Release 默认 /GL：lib.exe /LTCG 会产 LTCG PDB 落 OutDir（SA-3 pdb=True）→ 显式关闭 -->
+      <!-- Release 关 /GL 与 /Z*：lib.exe 会把带 CodeView 的 obj 归并出库 PDB（vmath.pdb
+           落 OutDir，SA-3 pdb=True，runner 实测）；链接器 GenerateDebugInformation 一并
+           显式关闭。Debug 配置不受影响（SA-3 断言 Debug 必须有 pdb） -->
       <WholeProgramOptimization>false</WholeProgramOptimization>
+      <DebugInformationFormat></DebugInformationFormat>
     </ClCompile>
     <Link>
       <!-- SA-3 契约：Release 不得产 pdb → 显式关闭 -->
