@@ -82,13 +82,14 @@ elseif ($hdr -match '^dumpbin:') { Record 'SA-2' 'PASS' 'deferred: dumpbin unava
 else { Record 'SA-2' 'FAIL' 'compiler version not extractable' }
 
 # SA-3 Debug/Release（/DEBUG 产 pdb + _DEBUG 标记）
-$pdb = Get-ChildItem -LiteralPath $art -Filter '*.pdb' -ErrorAction SilentlyContinue
+$pdb = @(Get-ChildItem -LiteralPath $art -Filter '*.pdb' -ErrorAction SilentlyContinue)
+$pdbNames = ($pdb | ForEach-Object { $_.Name }) -join ','
 $marker = 'unknown'
 if (Test-Path "$report\layer1\strings.txt") { $marker = [regex]::Match((Get-Content "$report\layer1\strings.txt" -Raw), 'cfg=[A-Za-z_-]+').Value }
-if ($cfg -eq 'Debug' -and $pdb) { Record 'SA-3' 'PASS' "cfg=$cfg, pdb present, marker=$marker" }
+if ($cfg -eq 'Debug' -and $pdb) { Record 'SA-3' 'PASS' "cfg=$cfg, pdb present [$pdbNames], marker=$marker" }
 elseif ($cfg -eq 'Release' -and -not $pdb) { Record 'SA-3' 'PASS' "cfg=$cfg, no pdb, marker=$marker" }
 elseif ($hdr -match '^dumpbin:') { Record 'SA-3' 'PASS' 'deferred: dumpbin unavailable locally' }
-else { Record 'SA-3' 'FAIL' "cfg=$cfg pdb=$([bool]$pdb)" }
+else { Record 'SA-3' 'FAIL' "cfg=$cfg pdb=[$pdbNames]" }
 
 # SA-4 库形态
 # SA-4 库形态（shared 的 vmath.lib 为 /IMPLIB import lib，属预期产物；
