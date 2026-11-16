@@ -77,7 +77,8 @@ jobs:
 
       # ---- step 1: build（构建，按 group/OS 分派脚本） ----
       - name: Setup MSVC environment (vcvars)
-        if: runner.os == 'Windows' && (inputs.toolset == 'msvc' || inputs.toolset == 'clang-cl')
+        # msbuild 方言也需要 vcvars（msbuild/dumpbin/cl 均由 vcvarsall 置入 PATH）
+        if: runner.os == 'Windows' && (inputs.toolset == 'msvc' || inputs.toolset == 'clang-cl' || inputs.toolset == 'msbuild')
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: ${{ startsWith(inputs.variant, 'x64') && 'x64' || 'x86' }}
@@ -114,30 +115,39 @@ jobs:
                   ;;
               esac ;;
             make/gnu)
-              # GNU make 方言（linux/macos；msys2 由 make-windows.yml 在 windows runner 处理）
+              # GNU make 方言：linux/macos 用 PATH 上的 make；
+              # msys2 用 MSYS make（usr/bin/make.exe，recipes 需 sh：mkdir -p / rm -f；
+              # 各环境 mingw-w64-<env>-make 只提供 mingw32-make.exe，不作此用）
               SRCDIR="$(pwd)"
               OSPREFIX="${{ inputs.os }}"; [ "$OSPREFIX" = windows ] && OSPREFIX=win
-          TAG="${OSPREFIX}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
+              TAG="${OSPREFIX}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
+              [ "${{ inputs.os }}" = windows ] && TAG="win_msys2_${{ inputs.variant }}_${{ inputs.cfg }}"
               B="build/make/gnu/$TAG/${{ inputs.kind }}"
               mkdir -p "$B" && cd "$B"
-              make -f "$SRCDIR/Makefile" srcdir="$SRCDIR" VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" selftest
-              ;;
-            make/msys2)
-              # msys2 各环境的 GNU make 跑同一 Makefile（C8：按环境前缀）
-              SRCDIR="$(pwd)"
-              TAG="win_msys2_${{ inputs.variant }}_${{ inputs.cfg }}"
-              B="build/make/gnu/$TAG/${{ inputs.kind }}"
-              mkdir -p "$B" && cd "$B"
-              case "${{ inputs.variant }}" in
-                MINGW64) MAKEBIN=/d/a/_temp/msys64/mingw64/bin/make.exe ;;
-                MINGW32) MAKEBIN=/d/a/_temp/msys64/mingw32/bin/make.exe ;;
-                CLANG64) MAKEBIN=/d/a/_temp/msys64/clang64/bin/make.exe ;;
-                UCRT64)  MAKEBIN=/d/a/_temp/msys64/ucrt64/bin/make.exe ;;
-              esac
-              "$MAKEBIN" -f "$SRCDIR/Makefile" srcdir="$SRCDIR" OS=msys2 TOOLSET=gcc VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" CC="$(cygpath -m /d/a/_temp/msys64/${{ inputs.variant }}/bin/gcc.exe 2>/dev/null || echo gcc)" selftest
+              if [ "${{ inputs.os }}" = windows ]; then
+                # C8：目录名小写（mingw64/mingw32/clang64/ucrt64）；CLANG64 编译器是 clang
+                MSYSROOT="$(cygpath -u "$RUNNER_TEMP/msys64" 2>/dev/null || echo /d/a/_temp/msys64)"
+                MAKEBIN="$MSYSROOT/usr/bin/make.exe"
+                [ -f "$MAKEBIN" ] || { echo "FAIL: msys2 make not found: $MAKEBIN"; exit 1; }
+                case "${{ inputs.variant }}" in
+                  MINGW64) MDIR=mingw64;  MCC=gcc.exe;   MTOOLSET=gcc ;;
+                  MINGW32) MDIR=mingw32;  MCC=gcc.exe;   MTOOLSET=gcc ;;
+                  CLANG64) MDIR=clang64;  MCC=clang.exe; MTOOLSET=clang ;;
+                  UCRT64)  MDIR=ucrt64;   MCC=gcc.exe;   MTOOLSET=gcc ;;
+                esac
+                CCBIN="$(cygpath -m "$MSYSROOT/$MDIR/bin/$MCC")"
+                [ -f "$MSYSROOT/$MDIR/bin/$MCC" ] || { echo "FAIL: msys2 compiler not found: $CCBIN"; exit 1; }
+                ARBIN="$(cygpath -m "$MSYSROOT/$MDIR/bin/ar.exe")"
+                "$MAKEBIN" -f "$SRCDIR/Makefile" srcdir="$SRCDIR" OS=msys2 TOOLSET="$MTOOLSET" VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" CC="$CCBIN" AR="$ARBIN" selftest
+              else
+                make -f "$SRCDIR/Makefile" srcdir="$SRCDIR" VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" selftest
+              fi
               ;;
             make/nmake)
-              pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/nmake.ps1 -Variant "${{ inputs.variant }}" -Cfg "${{ inputs.cfg }}" -Kind "${{ inputs.kind }}"
+              # clang-cl 2 组合（F-05-02：msvc 8 + clang-cl 2）传 -CC clang-cl
+              CCARGS=""
+              [ "${{ inputs.toolset }}" = "clang-cl" ] && CCARGS="-CC clang-cl"
+              pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/nmake.ps1 -Variant "${{ inputs.variant }}" -Cfg "${{ inputs.cfg }}" -Kind "${{ inputs.kind }}" $CCARGS
               ;;
             make/msbuild)
               pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/msbuild.ps1 -Variant "${{ inputs.variant }}" -Cfg "${{ inputs.cfg }}" -Kind "${{ inputs.kind }}"
