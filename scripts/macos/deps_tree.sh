@@ -28,8 +28,18 @@ CFGV="${CFGV:-unknown}"
 [ -n "$DEPTAG" ] || DEPTAG=$(basename "$ART")
 mkdir -p "$(dirname "$OUT_BASE")"
 
-# macOS BSD readlink 无 -f（GNU 专属）：经 python3 做等价 realpath 解析
-realpath_abs() { python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1"; }
+# macOS BSD readlink 无 -f（GNU 专属）、无 coreutils realpath：
+# 纯 bash 逐级解析符号链接，不依赖 python3（macOS runner 默认 bash 3.2）
+realpath_abs()
+{
+    local p="$1" tgt
+    while [ -L "$p" ]; do
+        tgt=$(readlink "$p") || return 1
+        [ "${tgt#/}" = "$tgt" ] && tgt="$(dirname "$p")/$tgt"
+        p="$tgt"
+    done
+    printf '%s\n' "$p"
+}
 
 ART_DIR=$(dirname "$(dirname "$(realpath_abs "$ART")")")
 BUILD_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -71,7 +81,9 @@ locate_lib()
     [ -f "$ART_DIR/$name" ] && realpath_abs "$ART_DIR/$name"
 }
 
-declare -A SEEN
+# bash 3.2 兼容：关联数组需 bash 4+，macOS runner 默认 /bin/bash 3.2
+# → 用换行分隔字符串 + grep -Fqx 成员判定
+SEEN=""
 MD_FILE="$OUT_BASE.md"
 : > "$MD_FILE"
 
@@ -80,7 +92,8 @@ emit_node()
     local name="$1" real="$2" indent="$3" suffix="$4"
     local origin deps total=0 idx=0 c_name c_real c_suffix connector
     origin=$(classify "$real")
-    SEEN["$name"]=1
+    SEEN="${SEEN}
+${name}"
     deps=$(deps_of "$real" 2>/dev/null || true)
     total=$(printf '%s\n' "$deps" | grep -c . || true)
 
@@ -100,7 +113,7 @@ emit_node()
                 ;;
         esac
         c_real=$(locate_lib "$c_name")
-        if [ -n "${SEEN[$c_name]:-}" ]; then
+        if printf '%s\n' "$SEEN" | grep -Fqx "$c_name"; then
             printf '{"name": "%s", "dedup": true, "children": []}%s' "$c_name" "$c_suffix"
             printf '%s├─ %s [dedup]\n' "$indent    " "$c_name" >> "$MD_FILE"
             continue
@@ -134,7 +147,7 @@ EOF
     done < <(find "$ART_DIR" -maxdepth 1 -type l 2>/dev/null)
     printf '], "dedup": ['
     first=1
-    for r in "${!SEEN[@]}"; do
+    printf '%s\n' "$SEEN" | grep -v '^$' | while IFS= read -r r; do
         [ "$first" = 1 ] || printf ', '
         printf '"%s"' "$r"
         first=0

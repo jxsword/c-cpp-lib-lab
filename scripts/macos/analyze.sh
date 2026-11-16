@@ -59,8 +59,9 @@ sorted_api=$(printf '%s\n' "$expected_api" | sort)
 sorted_errno=$(printf '%s\n' "$expected_with_errno" | sort)
 
 if [ -f "$LIB_DYLIB" ]; then
-    # layer1/nm_gU_dylib.txt 含 undefined 引用：剔除 U 行取已定义全局
-    actual=$(awk '$2 != "U" {print $NF}' "$GDIR/layer1/nm_gU_dylib.txt" | sort)
+    # layer1/nm_gU_dylib.txt 含 undefined 引用：剔除 U 行取已定义全局；
+    # Mach-O clang 符号带前导 _，剥离后与期望名比较
+    actual=$(awk '$2 != "U" {print $NF}' "$GDIR/layer1/nm_gU_dylib.txt" | sed 's/^_//' | sort)
     if [ "$actual" = "$sorted_errno" ]; then
         bare="PASS (exported, default visibility)"
     elif [ "$actual" = "$sorted_api" ]; then
@@ -79,7 +80,8 @@ if [ -f "$LIB_DYLIB" ]; then
         normalize_ok=PASS
     fi
 else
-    actual=$(awk '$2 == "T" || $2 == "B" {print $3}' "$GDIR/layer1/nm_archive.txt" 2>/dev/null | sort | uniq)
+    # Mach-O clang 符号带前导 _，剥离后与期望名比较
+    actual=$(awk '$2 == "T" || $2 == "B" {print $3}' "$GDIR/layer1/nm_archive.txt" 2>/dev/null | sed 's/^_//' | sort | uniq)
     if [ "$actual" = "$sorted_errno" ]; then
         bare="PASS (bare symbol global 'B' in static archive; visibility applies at consumer link time)"
     elif [ "$actual" = "$sorted_api" ]; then
