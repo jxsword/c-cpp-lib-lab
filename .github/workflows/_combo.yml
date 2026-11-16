@@ -145,9 +145,11 @@ jobs:
                 # 编译器探针：工具链可运行性显式留痕（缺 DLL / 架构不匹配类故障在此显式暴露）
                 "$CCBIN" --version || { echo "FAIL: compiler probe rc=$? : $CCBIN --version"; exit 1; }
                 ARBIN="$(cygpath -m "$MSYSROOT/$MDIR/bin/ar.exe")"
-                "$MAKEBIN" -f "$SRCDIR/Makefile" srcdir="$SRCDIR" OS=msys2 TOOLSET="$MTOOLSET" VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" CC="$CCBIN" AR="$ARBIN" selftest
+                # tee compile.log：SA-3 证据链口径与 linux/macos 一致
+                "$MAKEBIN" -f "$SRCDIR/Makefile" srcdir="$SRCDIR" OS=msys2 TOOLSET="$MTOOLSET" VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" CC="$CCBIN" AR="$ARBIN" selftest 2>&1 | tee compile.log
               else
-                make -f "$SRCDIR/Makefile" srcdir="$SRCDIR" VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" selftest
+                # tee compile.log：SA-3 macOS Debug 的 gflag 回退证据（编译命令含 -g 意图留痕）
+                make -f "$SRCDIR/Makefile" srcdir="$SRCDIR" VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" selftest 2>&1 | tee compile.log
               fi
               ;;
             make/nmake)
