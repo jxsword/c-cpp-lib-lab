@@ -94,10 +94,24 @@ jobs:
             echo '缓存复用（K6）：包缓存跨 run 复用（apt/brew/pacman key 不含 run_id）；编译缓存按组合隔离（K1）——命中率见各 Job Summary（K5）。'
             echo '总组合数：24 + 32 + 24 = 80'
           } >> "$GITHUB_STEP_SUMMARY"
-          # A6：失败定位——任一 needs 非 success 即汇总失败并给出 group/os
+          # A6：失败定位——任一 needs 非 success 即汇总失败并给出 group/os。
+          # 表达式不支持动态键名（needs[k] 会使整个 workflow 解析失败、不可 dispatch），
+          # 只能逐键显式判定
           FAILED=""
-          for k in native-linux native-macos native-windows make-linux make-macos make-windows msbuild-windows cmake-linux cmake-macos cmake-windows analyze run-output; do
-            r=$(echo "${{ needs[k].result }}" 2>/dev/null || true)
+          for pair in \
+            "native-linux:${{ needs.native-linux.result }}" \
+            "native-macos:${{ needs.native-macos.result }}" \
+            "native-windows:${{ needs.native-windows.result }}" \
+            "make-linux:${{ needs.make-linux.result }}" \
+            "make-macos:${{ needs.make-macos.result }}" \
+            "make-windows:${{ needs.make-windows.result }}" \
+            "msbuild-windows:${{ needs.msbuild-windows.result }}" \
+            "cmake-linux:${{ needs.cmake-linux.result }}" \
+            "cmake-macos:${{ needs.cmake-macos.result }}" \
+            "cmake-windows:${{ needs.cmake-windows.result }}" \
+            "analyze:${{ needs.analyze.result }}" \
+            "run-output:${{ needs.run-output.result }}"; do
+            k="${pair%%:*}"; r="${pair#*:}"
             [ "$r" = "success" ] || FAILED="$FAILED $k"
           done
           if [ -n "$FAILED" ]; then
