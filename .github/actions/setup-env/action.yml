@@ -119,7 +119,8 @@ runs:
     - name: Install brew packages
       if: runner.os == 'macOS'
       shell: bash
-      run: xargs -a .github/brew-packages.txt brew install
+      # BSD xargs（macOS）无 -a（GNU 专属），用 stdin 重定向的可移植形式
+      run: xargs brew install < .github/brew-packages.txt
 
     - name: Ensure brew cache paths exist
       if: runner.os == 'macOS'
