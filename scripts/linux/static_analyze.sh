@@ -304,7 +304,11 @@ JSON="$REPORT/${TAG}_${KIND}.json"
     first=1
     while IFS='|' read -r sid res ev; do
         [ "$first" = 1 ] || printf ',\n'
-        ev_escaped=${ev//\"/\\\"}
+        # JSON 转义三件套：反斜杠先转义、引号转义、控制字符剔除
+        #（cmds= 证据内嵌整段编译日志，反斜杠/控制字符会让 json.tool 判 invalid）
+        ev_escaped=${ev//\\/\\\\}
+        ev_escaped=${ev_escaped//\"/\\\"}
+        ev_escaped=$(printf '%s' "$ev_escaped" | tr -d '\000-\037')
         printf '    {"id": "%s", "result": "%s", "evidence": "%s"}' "$sid" "$res" "$ev_escaped"
         first=0
     done < "$REPORT/sa_results.tmp"
