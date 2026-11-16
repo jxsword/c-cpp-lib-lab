@@ -28,7 +28,7 @@ on:
 
 jobs:
   env:
-    runs-on: ${{ inputs.os == 'linux' && 'ubuntu-latest' || inputs.os == 'macos' && 'macos-14' || 'windows-latest' }}
+    runs-on: ${{ inputs.os == 'linux' && 'ubuntu-latest' || inputs.os == 'macos' && 'macos-15' || 'windows-latest' }}
     outputs:
       cache_hit: ${{ steps.setup.outputs.cache-hit }}
     steps:

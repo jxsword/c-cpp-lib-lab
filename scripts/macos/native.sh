@@ -37,6 +37,11 @@ if ! calc_assert_no_artifacts "$ROOT"; then
 fi
 
 CFG_FLAGS=$(calc_macos_cfg_flags "$CFG") || { calc_log_fail "bad cfg"; exit 2; }
+# 链接期旗标：plain -g 在链接时未把 DWARF 嵌入产物（run 43845872274
+# 取证：链接命令带 -g 仍无 LC_DEBUG_INFO）；-gsplit-dwarf 显式走 dSYM
+# 布局，SA-2/SA-3 的 dSYM 提取链依赖
+LINK_DBG=""
+[ "$CFG" = "Debug" ] && LINK_DBG="-g -gsplit-dwarf"
 
 run_cmd()
 {
@@ -50,13 +55,13 @@ if [ "$KIND" = "static" ]; then
     run_cmd "$CC" $CFG_FLAGS $ARCH_FLAGS -DCALC_STATIC -I"$ROOT/include" -c "$ROOT/src/vmath_report.c" -o "$OUT/vmath_report.o" && \
     run_cmd "$CC" $CFG_FLAGS $ARCH_FLAGS -DCALC_STATIC -I"$ROOT/include" -c "$ROOT/src/calctool.c" -o "$OUT/calctool.o" && \
     run_cmd ar rcs "$OUT/libvmath.a" "$OUT/vmath_core.o" "$OUT/vmath_report.o" && \
-    run_cmd "$CC" $ARCH_FLAGS "$OUT/calctool.o" -L"$OUT" -lvmath -o "$OUT/calctool" || rc=1
+    run_cmd "$CC" $ARCH_FLAGS "$OUT/calctool.o" -L"$OUT" -lvmath -o "$OUT/calctool" $LINK_DBG || rc=1
 else
     run_cmd "$CC" $CFG_FLAGS $ARCH_FLAGS -DCALC_BUILD_DLL -fvisibility=hidden -I"$ROOT/include" -c "$ROOT/src/vmath_core.c" -o "$OUT/vmath_core.o" && \
     run_cmd "$CC" $CFG_FLAGS $ARCH_FLAGS -DCALC_BUILD_DLL -fvisibility=hidden -I"$ROOT/include" -c "$ROOT/src/vmath_report.c" -o "$OUT/vmath_report.o" && \
-    run_cmd "$CC" $ARCH_FLAGS -dynamiclib -Wl,-install_name,@rpath/libvmath.dylib -Wl,-rpath,@loader_path "$OUT/vmath_core.o" "$OUT/vmath_report.o" -o "$OUT/libvmath.dylib" && \
+    run_cmd "$CC" $ARCH_FLAGS -dynamiclib -Wl,-install_name,@rpath/libvmath.dylib -Wl,-rpath,@loader_path "$OUT/vmath_core.o" "$OUT/vmath_report.o" -o "$OUT/libvmath.dylib" $LINK_DBG && \
     run_cmd "$CC" $CFG_FLAGS $ARCH_FLAGS -DCALC_USE_DLL -I"$ROOT/include" -c "$ROOT/src/calctool.c" -o "$OUT/calctool.o" && \
-    run_cmd "$CC" $ARCH_FLAGS "$OUT/calctool.o" -L"$OUT" -lvmath -Wl,-rpath,@loader_path -o "$OUT/calctool" || rc=1
+    run_cmd "$CC" $ARCH_FLAGS "$OUT/calctool.o" -L"$OUT" -lvmath -Wl,-rpath,@loader_path -o "$OUT/calctool" $LINK_DBG || rc=1
 fi
 
 if [ "$rc" -ne 0 ]; then

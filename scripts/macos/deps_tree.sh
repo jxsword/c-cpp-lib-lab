@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # deps_tree.sh —— SA-8 递归依赖树·macOS 版（F-04-01；PLAN 5.8.3）
-# BFS；otool -L 静态读取依赖；readlink/realpath 解析；libSystem.B.dylib 等
+# BFS；otool -L 静态读取依赖；python3 realpath 解析（macOS BSD readlink 无 -f）；
+# libSystem.B.dylib 等
 # 系统库标记为 shared-cache（不落盘实体，A4）。
 # FORBIDDEN: 刻意不使用执行类依赖解析手段（5.8.4），仅静态读取文件结构。
 set -u
@@ -27,7 +28,20 @@ CFGV="${CFGV:-unknown}"
 [ -n "$DEPTAG" ] || DEPTAG=$(basename "$ART")
 mkdir -p "$(dirname "$OUT_BASE")"
 
-ART_DIR=$(dirname "$(dirname "$(readlink -f "$ART")")")
+# macOS BSD readlink 无 -f（GNU 专属）、无 coreutils realpath：
+# 纯 bash 逐级解析符号链接，不依赖 python3（macOS runner 默认 bash 3.2）
+realpath_abs()
+{
+    local p="$1" tgt
+    while [ -L "$p" ]; do
+        tgt=$(readlink "$p") || return 1
+        [ "${tgt#/}" = "$tgt" ] && tgt="$(dirname "$p")/$tgt"
+        p="$tgt"
+    done
+    printf '%s\n' "$p"
+}
+
+ART_DIR=$(dirname "$(dirname "$(realpath_abs "$ART")")")
 BUILD_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
 deps_of()
@@ -51,12 +65,12 @@ locate_lib()
     case "$name" in
         @rpath/*)
             p="$ART_DIR/${name#@rpath/}"
-            [ -f "$p" ] && { readlink -f "$p"; return; }
+            [ -f "$p" ] && { realpath_abs "$p"; return; }
             return
             ;;
         @loader_path/*)
             p="$ART_DIR/${name#@loader_path/}"
-            [ -f "$p" ] && { readlink -f "$p"; return; }
+            [ -f "$p" ] && { realpath_abs "$p"; return; }
             return
             ;;
         /usr/lib/*|/System/*)
@@ -64,10 +78,12 @@ locate_lib()
             return
             ;;
     esac
-    [ -f "$ART_DIR/$name" ] && readlink -f "$ART_DIR/$name"
+    [ -f "$ART_DIR/$name" ] && realpath_abs "$ART_DIR/$name"
 }
 
-declare -A SEEN
+# bash 3.2 兼容：关联数组需 bash 4+，macOS runner 默认 /bin/bash 3.2
+# → 用换行分隔字符串 + grep -Fqx 成员判定
+SEEN=""
 MD_FILE="$OUT_BASE.md"
 : > "$MD_FILE"
 
@@ -76,7 +92,8 @@ emit_node()
     local name="$1" real="$2" indent="$3" suffix="$4"
     local origin deps total=0 idx=0 c_name c_real c_suffix connector
     origin=$(classify "$real")
-    SEEN["$name"]=1
+    SEEN="${SEEN}
+${name}"
     deps=$(deps_of "$real" 2>/dev/null || true)
     total=$(printf '%s\n' "$deps" | grep -c . || true)
 
@@ -96,7 +113,7 @@ emit_node()
                 ;;
         esac
         c_real=$(locate_lib "$c_name")
-        if [ -n "${SEEN[$c_name]:-}" ]; then
+        if printf '%s\n' "$SEEN" | grep -Fqx "$c_name"; then
             printf '{"name": "%s", "dedup": true, "children": []}%s' "$c_name" "$c_suffix"
             printf '%s├─ %s [dedup]\n' "$indent    " "$c_name" >> "$MD_FILE"
             continue
@@ -115,13 +132,13 @@ EOF
 
 {
     printf '{"tag": "%s", "root": {"path": "%s", "arch": "%s", "compiler": "%s", "cfg": "%s"}, "tree": ' \
-        "$DEPTAG" "$(readlink -f "$ART")" "$(lipo -archs "$ART" 2>/dev/null | tr ' ' ',')" \
+        "$DEPTAG" "$(realpath_abs "$ART")" "$(lipo -archs "$ART" 2>/dev/null | tr ' ' ',')" \
         "$COMPILER" "$CFGV"
-    emit_node "$(basename "$ART")" "$(readlink -f "$ART")" "" ""
+    emit_node "$(basename "$ART")" "$(realpath_abs "$ART")" "" ""
     printf ', "symlink_chains": ['
     n=0
     while IFS= read -r lnk; do
-        tgt=$(readlink -f "$lnk" 2>/dev/null) || continue
+        tgt=$(realpath_abs "$lnk" 2>/dev/null) || continue
         [ -n "$tgt" ] || continue
         [ "$tgt" = "$lnk" ] && continue
         n=$((n + 1))
@@ -130,7 +147,7 @@ EOF
     done < <(find "$ART_DIR" -maxdepth 1 -type l 2>/dev/null)
     printf '], "dedup": ['
     first=1
-    for r in "${!SEEN[@]}"; do
+    printf '%s\n' "$SEEN" | grep -v '^$' | while IFS= read -r r; do
         [ "$first" = 1 ] || printf ', '
         printf '"%s"' "$r"
         first=0

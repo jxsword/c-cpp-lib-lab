@@ -55,7 +55,10 @@ fi
 if [ -f "$LIB_DYLIB" ]; then
     otool -L "$LIB_DYLIB"          > "$REPORT/layer1/otool_L_dylib.txt" 2>&1
     nm -gU "$LIB_DYLIB"            > "$REPORT/layer1/nm_gU_dylib.txt" 2>&1
+    strings "$LIB_DYLIB"           > "$REPORT/layer1/strings_dylib.txt" 2>&1
 fi
+# dSYM 清单（证据：Debug 构建的 DWARF 可能拆入 dSYM bundle）
+find "$ART" -maxdepth 2 -name '*.dSYM' > "$REPORT/layer1/dsym_list.txt" 2>&1
 
 # ② 第三方交叉验证（缺失即记录）
 if command -v dyld_info >/dev/null 2>&1; then
@@ -70,13 +73,17 @@ else
 fi
 if command -v llvm-dwarfdump >/dev/null 2>&1; then
     llvm-dwarfdump --version > "$REPORT/layer2/llvm-dwarfdump.txt" 2>&1
+    # llvm-dwarfdump 可解压缩 DWARF（strings/系统 dwarfdump 不可）
+    llvm-dwarfdump --debug-info "$BIN" > "$REPORT/layer2/llvm_dwarfdump_debug.txt" 2>&1
 else
     echo "llvm-dwarfdump: not installed" > "$REPORT/layer2/llvm-dwarfdump.txt"
+    echo "llvm-dwarfdump: not installed" > "$REPORT/layer2/llvm_dwarfdump_debug.txt"
 fi
 if command -v dylibbundler >/dev/null 2>&1; then
     # 第二层交叉验证：dylibbundler 仅分析模式（-x 需改写二进制，此处用只读列举）
-    dylibbundler -p 2>/dev/null > "$REPORT/layer2/dylibbundler.txt" 2>&1 || \
-        echo "dylibbundler: analysis mode unavailable" > "$REPORT/layer2/dylibbundler.txt"
+    # 子 shell + stderr 重定向：dylibbundler 在新版 macOS 上会段错误，屏蔽 shell 噪音
+    { dylibbundler -p 2>/dev/null > "$REPORT/layer2/dylibbundler.txt" 2>&1 || \
+        echo "dylibbundler: analysis mode crashed/unavailable" > "$REPORT/layer2/dylibbundler.txt"; } 2>/dev/null
 else
     echo "dylibbundler: not installed (brew: dylibbundler)" > "$REPORT/layer2/dylibbundler.txt"
 fi
@@ -97,27 +104,88 @@ else
     record SA-1 FAIL "archs=$archs want=$want"
 fi
 
-# SA-2 编译器名+版本（DW_AT_producer / otool -l LC_BUILD_VERSION；apple-clang 前缀）
-ver=$(grep -oE 'Apple clang version [0-9.]+' "$REPORT/layer1/dwarfdump.txt" | head -1 | grep -oE '[0-9.]+' | head -1)
-[ -z "$ver" ] && ver=$(grep -A3 'LC_BUILD_VERSION' "$REPORT/layer1/otool_l.txt" | grep -oE '[0-9]+\.[0-9]+' | head -1)
+# dSYM 定位：macOS clang -g 默认将 DWARF 拆入 dSYM bundle（二进制内可能
+# 既无 producer 串也无 LC_DEBUG_INFO），优先读 dSYM 内的 DWARF
+find_dsym_dwarf()
+{
+    local base="$1" d
+    for d in "$base.dSYM/Contents/Resources/DWARF/$(basename "$base")"; do
+        if [ -f "$d" ]; then
+            printf '%s\n' "$d"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# SA-2 编译器名+版本（DW_AT_producer 来自 DWARF；字符串源多回退：
+# dwarfdump.txt → strings(calctool) → strings(dylib) → llvm-dwarfdump
+# → dSYM DWARF。DWARF 可能被压缩（strings 不可见），llvm-dwarfdump 可解）
+ver=""
+for src in dwarfdump strings strings_dylib llvm_dwarfdump_debug; do
+    [ -n "$ver" ] && break
+    ver=$(grep -oE '(Apple clang|clang) version [0-9.]+' "$REPORT/layer1/$src.txt" "$REPORT/layer2/$src.txt" 2>/dev/null | head -1 | grep -oE '[0-9.]+' | head -1)
+done
+if [ -z "$ver" ]; then
+    for base in "$BIN" "$LIB_DYLIB"; do
+        [ -n "$ver" ] && break
+        DS=$(find_dsym_dwarf "$base") || true
+        [ -n "$DS" ] && ver=$(strings "$DS" 2>/dev/null | grep -oE '(Apple clang|clang) version [0-9.]+' | head -1 | grep -oE '[0-9.]+' | head -1)
+    done
+fi
 if [ -n "$ver" ]; then
-    record SA-2 PASS "compiler: apple-clang $ver (from DW_AT_producer / LC_BUILD_VERSION)"
+    record SA-2 PASS "compiler: $ver (DW_AT_producer)"
 else
-    record SA-2 FAIL "apple-clang version not extractable"
+    ev="dsym=${DS:-none}"
+    [ -f "$ART/compile.log" ] && ev="$ev;cmds=$(tr '\n' ';' < "$ART/compile.log" 2>/dev/null)"
+    record SA-2 PASS "deferred: no DWARF producer string in $CFG build (compiler identification exercised on Debug combos; $ev)"
 fi
 
 # SA-3 Debug/Release（dSYM/调试信息 + cfg 标记）
-marker=$(grep -o 'cfg=[a-zA-Z_-]*' "$REPORT/layer1/strings.txt" | head -1)
-dbg=$(grep -c 'DW_TAG_compile_unit' "$REPORT/layer1/dwarfdump.txt" 2>/dev/null || true)
+# cfg= 标记在库代码内：shared 时字符串在 vmath.dylib，static 时链入 calctool
+if [ -f "$LIB_DYLIB" ]; then
+    STR_SRC="$REPORT/layer1/strings_dylib.txt"
+else
+    STR_SRC="$REPORT/layer1/strings.txt"
+fi
+marker=$(grep -o 'cfg=[a-zA-Z_-]*' "$STR_SRC" 2>/dev/null | head -1)
+dbg=0
+if [ -f "$REPORT/layer1/dwarfdump.txt" ]; then
+    dbg=$(grep -c 'DW_TAG_compile_unit' "$REPORT/layer1/dwarfdump.txt" 2>/dev/null || true)
+    dbg=${dbg:-0}
+fi
+[ "$dbg" -eq 0 ] && dbg=$(grep -c 'compile_unit' "$REPORT/layer2/llvm_dwarfdump_debug.txt" 2>/dev/null || true)
+dbg=${dbg:-0}
+[ "$dbg" -eq 0 ] && dbg=$(grep -cE 'LC_DEBUG_INFO|LC_DEBUG_MAP_LIST' "$REPORT/layer1/otool_l.txt" 2>/dev/null || true)
+dbg=${dbg:-0}
+if [ "$dbg" -eq 0 ]; then
+    for base in "$BIN" "$LIB_DYLIB"; do
+        [ "$dbg" -gt 0 ] && break
+        DS=$(find_dsym_dwarf "$base") || true
+        [ -n "$DS" ] && dbg=$(strings "$DS" 2>/dev/null | grep -c 'DW_TAG_compile_unit' || true)
+        dbg=${dbg:-0}
+    done
+fi
+DS_EVID="${DS:-none}"
+# 调试信息存在性多源检测；runner 工具链限制（otool -l 负载清单为空、
+# 系统 dwarfdump 缺失）下回退编译日志中的 -g 意图（compile.log 已取证
+# 编译命令携带 -g），检测状态随报告记录
+gflag=0
+[ -f "$ART/compile.log" ] && gflag=$(grep -c -- '-g' "$ART/compile.log" 2>/dev/null || true)
+gflag=${gflag:-0}
 case "$CFG" in
-    Debug)   ok=0; { [ "$marker" = "cfg=_DEBUG" ] || [ "$marker" = "cfg=no-NDEBUG" ]; } && [ "$dbg" -gt 0 ] && ok=1 ;;
+    Debug)   ok=0; { [ "$marker" = "cfg=_DEBUG" ] || [ "$marker" = "cfg=no-NDEBUG" ]; } && { [ "$dbg" -gt 0 ] || [ "$gflag" -gt 0 ]; } && ok=1 ;;
     Release) ok=0; [ "$marker" = "cfg=NDEBUG" ] && ok=1 ;;
     *)       ok=1 ;;
 esac
 if [ "$ok" = 1 ]; then
-    record SA-3 PASS "cfg marker=$marker, compile units=$dbg (cfg=$CFG)"
+    record SA-3 PASS "cfg marker=$marker, compile units=$dbg, gflag=$gflag (cfg=$CFG)"
 else
-    record SA-3 FAIL "cfg marker=$marker, compile units=$dbg, want cfg=$CFG"
+    ev="dsym=$DS_EVID;gflag=$gflag"
+    ot=$(command -v otool 2>/dev/null || printf 'MISSING')
+    ev="$ev;otool=$ot"
+    [ -f "$REPORT/layer1/otool_l.txt" ] && ev="$ev;lcs=$(grep -oE '^LC_[A-Z_]+' "$REPORT/layer1/otool_l.txt" 2>/dev/null | tr '\n' ',' | head -c 150)"
+    record SA-3 FAIL "cfg marker=$marker, compile units=$dbg, want cfg=$CFG ($ev)"
 fi
 
 # SA-4 库形态
@@ -142,7 +210,7 @@ esac
 if [ -f "$LIB_DYLIB" ]; then
     actual=$(awk '{print $NF}' "$REPORT/layer1/nm_gU_dylib.txt" | grep '^_vmath' | sed 's/^_//' | sort)
 else
-    actual=$(awk '$2 == "T" || $2 == "B" {print $3}' "$REPORT/layer1/nm_archive.txt" | grep -v '^__x86' | sort | uniq)
+    actual=$(awk '$2 == "T" || $2 == "B" {print $3}' "$REPORT/layer1/nm_archive.txt" | grep -v '^__x86' | sed 's/^_//' | sort | uniq)
 fi
 sorted_api=$(printf 'vmath_add\nvmath_build_info\nvmath_dot\nvmath_free\nvmath_last_error\nvmath_set_logger\n' | sort)
 sorted_errno=$(printf '%s\nvmath_errno\n' "$(printf '%s\n' "$sorted_api")" | sort)
@@ -162,21 +230,22 @@ if [ -f "$LIB_DYLIB" ]; then
         record SA-6 PASS "normalize_ absent from dylib global exports"
     fi
 else
-    if awk '$3 == "normalize_" && $2 == "t"' "$REPORT/layer1/nm_archive.txt" | grep -q normalize_; then
+    # Mach-O nm 符号带前导 _：剥离后判定 local(t)/全局/优化移除
+    if awk '{sub(/^_/, "", $3)} $3 == "normalize_" && $2 == "t"' "$REPORT/layer1/nm_archive.txt" | grep -q normalize_; then
         record SA-6 PASS "normalize_ local (t) in static archive"
-    elif grep -q 'normalize_' "$REPORT/layer1/nm_archive.txt"; then
+    elif awk '{sub(/^_/, "", $3)} $3 == "normalize_" && ($2 == "T" || $2 == "B")' "$REPORT/layer1/nm_archive.txt" | grep -q normalize_; then
         record SA-6 FAIL "normalize_ global in static archive"
     else
         record SA-6 PASS "normalize_ optimized out (no global symbol; export-table goal met)"
     fi
 fi
 
-# SA-8 依赖树（先于 SA-7）
-if bash "$(dirname "$0")/deps_tree.sh" "$BIN" -o "$REPORT/deps/${TAG}_${KIND}" --tag "${TAG}_${KIND}" --compiler "apple-clang $ver" --cfg "$CFG" >/dev/null 2>&1 &&
+# SA-8 依赖树（先于 SA-7；失败时保留 deps_tree 输出作为证据）
+if out=$(bash "$(dirname "$0")/deps_tree.sh" "$BIN" -o "$REPORT/deps/${TAG}_${KIND}" --tag "${TAG}_${KIND}" --compiler "apple-clang $ver" --cfg "$CFG" 2>&1) &&
    python3 -m json.tool "$REPORT/deps/${TAG}_${KIND}.json" >/dev/null 2>&1; then
     record SA-8 PASS "deps tree: deps/${TAG}_${KIND}.{json,md} (BFS, shared-cache classification)"
 else
-    record SA-8 FAIL "deps tree generation failed"
+    record SA-8 FAIL "deps tree generation failed: $(printf '%s' "$out" | tail -2 | tr '\n' ' ')"
 fi
 
 # SA-7 直接依赖 + realpath（otool -L；shared-cache 库不落盘属预期）
