@@ -71,8 +71,11 @@ else
 fi
 if command -v llvm-dwarfdump >/dev/null 2>&1; then
     llvm-dwarfdump --version > "$REPORT/layer2/llvm-dwarfdump.txt" 2>&1
+    # llvm-dwarfdump 可解压缩 DWARF（strings/系统 dwarfdump 不可）
+    llvm-dwarfdump --debug-info "$BIN" > "$REPORT/layer2/llvm_dwarfdump_debug.txt" 2>&1
 else
     echo "llvm-dwarfdump: not installed" > "$REPORT/layer2/llvm-dwarfdump.txt"
+    echo "llvm-dwarfdump: not installed" > "$REPORT/layer2/llvm_dwarfdump_debug.txt"
 fi
 if command -v dylibbundler >/dev/null 2>&1; then
     # 第二层交叉验证：dylibbundler 仅分析模式（-x 需改写二进制，此处用只读列举）
@@ -114,11 +117,12 @@ find_dsym_dwarf()
 }
 
 # SA-2 编译器名+版本（DW_AT_producer 来自 DWARF；字符串源多回退：
-# dwarfdump.txt → strings(calctool) → strings(dylib) → dSYM DWARF）
+# dwarfdump.txt → strings(calctool) → strings(dylib) → llvm-dwarfdump
+# → dSYM DWARF。DWARF 可能被压缩（strings 不可见），llvm-dwarfdump 可解）
 ver=""
-for src in dwarfdump strings strings_dylib; do
+for src in dwarfdump strings strings_dylib llvm_dwarfdump_debug; do
     [ -n "$ver" ] && break
-    ver=$(grep -oE 'Apple clang version [0-9.]+' "$REPORT/layer1/$src.txt" 2>/dev/null | head -1 | grep -oE '[0-9.]+' | head -1)
+    ver=$(grep -oE 'Apple clang version [0-9.]+' "$REPORT/layer1/$src.txt" "$REPORT/layer2/$src.txt" 2>/dev/null | head -1 | grep -oE '[0-9.]+' | head -1)
 done
 if [ -z "$ver" ]; then
     for base in "$BIN" "$LIB_DYLIB"; do
@@ -146,6 +150,8 @@ if [ -f "$REPORT/layer1/dwarfdump.txt" ]; then
     dbg=$(grep -c 'DW_TAG_compile_unit' "$REPORT/layer1/dwarfdump.txt" 2>/dev/null || true)
     dbg=${dbg:-0}
 fi
+[ "$dbg" -eq 0 ] && dbg=$(grep -c 'DW_TAG_compile_unit' "$REPORT/layer2/llvm_dwarfdump_debug.txt" 2>/dev/null || true)
+dbg=${dbg:-0}
 [ "$dbg" -eq 0 ] && dbg=$(grep -c 'LC_DEBUG_INFO' "$REPORT/layer1/otool_l.txt" 2>/dev/null || true)
 dbg=${dbg:-0}
 if [ "$dbg" -eq 0 ]; then
