@@ -44,6 +44,8 @@ capture()
     local rc2=$?
     if [ "$rc2" != "$want" ]; then
         calc_log_fail "$rv: exit=$rc2 want=$want ($TAG/$KIND)"
+        # 失败时回显捕获输出（Debug 产物不上传 artifact，dyld 等运行期错误需日志取证）
+        sed -n "/===== $rv =====/,/----- exit code/p" "$OUT_FILE" | tail -n +1 | tail -20
         fails=$((fails + 1))
     else
         calc_log_pass "$rv: exit=$rc2 ($TAG/$KIND)"
