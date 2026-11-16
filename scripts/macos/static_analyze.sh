@@ -57,6 +57,8 @@ if [ -f "$LIB_DYLIB" ]; then
     nm -gU "$LIB_DYLIB"            > "$REPORT/layer1/nm_gU_dylib.txt" 2>&1
     strings "$LIB_DYLIB"           > "$REPORT/layer1/strings_dylib.txt" 2>&1
 fi
+# dSYM 清单（证据：Debug 构建的 DWARF 可能拆入 dSYM bundle）
+find "$ART" -maxdepth 2 -name '*.dSYM' > "$REPORT/layer1/dsym_list.txt" 2>&1
 
 # ② 第三方交叉验证（缺失即记录）
 if command -v dyld_info >/dev/null 2>&1; then
@@ -134,7 +136,7 @@ fi
 if [ -n "$ver" ]; then
     record SA-2 PASS "compiler: apple-clang $ver (DW_AT_producer)"
 else
-    record SA-2 PASS "deferred: no DWARF producer string in $CFG build (compiler identification exercised on Debug combos)"
+    record SA-2 PASS "deferred: no DWARF producer string in $CFG build (compiler identification exercised on Debug combos; dsym=${DS:-none})"
 fi
 
 # SA-3 Debug/Release（dSYM/调试信息 + cfg 标记）
@@ -150,9 +152,9 @@ if [ -f "$REPORT/layer1/dwarfdump.txt" ]; then
     dbg=$(grep -c 'DW_TAG_compile_unit' "$REPORT/layer1/dwarfdump.txt" 2>/dev/null || true)
     dbg=${dbg:-0}
 fi
-[ "$dbg" -eq 0 ] && dbg=$(grep -c 'DW_TAG_compile_unit' "$REPORT/layer2/llvm_dwarfdump_debug.txt" 2>/dev/null || true)
+[ "$dbg" -eq 0 ] && dbg=$(grep -c 'compile_unit' "$REPORT/layer2/llvm_dwarfdump_debug.txt" 2>/dev/null || true)
 dbg=${dbg:-0}
-[ "$dbg" -eq 0 ] && dbg=$(grep -c 'LC_DEBUG_INFO' "$REPORT/layer1/otool_l.txt" 2>/dev/null || true)
+[ "$dbg" -eq 0 ] && dbg=$(grep -cE 'LC_DEBUG_INFO|LC_DEBUG_MAP_LIST' "$REPORT/layer1/otool_l.txt" 2>/dev/null || true)
 dbg=${dbg:-0}
 if [ "$dbg" -eq 0 ]; then
     for base in "$BIN" "$LIB_DYLIB"; do
@@ -162,6 +164,7 @@ if [ "$dbg" -eq 0 ]; then
         dbg=${dbg:-0}
     done
 fi
+DS_EVID="${DS:-none}"
 case "$CFG" in
     Debug)   ok=0; { [ "$marker" = "cfg=_DEBUG" ] || [ "$marker" = "cfg=no-NDEBUG" ]; } && [ "$dbg" -gt 0 ] && ok=1 ;;
     Release) ok=0; [ "$marker" = "cfg=NDEBUG" ] && ok=1 ;;
@@ -170,7 +173,7 @@ esac
 if [ "$ok" = 1 ]; then
     record SA-3 PASS "cfg marker=$marker, compile units=$dbg (cfg=$CFG)"
 else
-    record SA-3 FAIL "cfg marker=$marker, compile units=$dbg, want cfg=$CFG"
+    record SA-3 FAIL "cfg marker=$marker, compile units=$dbg, want cfg=$CFG (dsym=$DS_EVID)"
 fi
 
 # SA-4 库形态
