@@ -26,10 +26,13 @@ jobs:
         shell: bash
         run: |
           TAG="${{ inputs.tag }}"
-          REST="${TAG%_*}"; CFG="${REST##*_}"
+          # 组合标签 os_cc_<variant>_<cfg>：variant=第 3 段、cfg=第 4 段
+          # （旧实现 ${TAG##*_} 取到的是 cfg，runner 实测 FAIL: arch must be x86|x64）
+          VARIANT=$(echo "$TAG" | cut -d_ -f3)
+          CFG=$(echo "$TAG" | cut -d_ -f4)
           case "${{ inputs.os }}/${{ inputs.group }}" in
-            linux/native)  ARCH="${TAG##*_}"; ./scripts/linux/native.sh "$ARCH" "$CFG" "${{ inputs.kind }}" ;;
-            linux/cmake)   ARCH="${TAG##*_}"; ./scripts/linux/cmake.sh "$ARCH" "$CFG" "${{ inputs.kind }}" ;;
+            linux/native)   ./scripts/linux/native.sh "$VARIANT" "$CFG" "${{ inputs.kind }}" ;;
+            linux/cmake)    ./scripts/linux/cmake.sh "$VARIANT" "$CFG" "${{ inputs.kind }}" ;;
             *) echo "SKIP: handled by its runner workflow"; exit 0 ;;
           esac
       - name: RV capture (stdout/stderr/exit code)
