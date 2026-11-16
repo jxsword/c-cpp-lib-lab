@@ -12,8 +12,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # 可靠改写为 INSTALL_RPATH；也使构建树 RUNPATH 与 native.sh 一致为恰 $ORIGIN）
 set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
 # MSVC CRT 抽象（CMP0091 NEW；A5：命令行 -DCMAKE_MSVC_RUNTIME_LIBRARY 按
-# variant 的 _MD/_MT 注入 MultiThreadedDLL/MultiThreaded，Debug 自动 *d）
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+# variant 的 _MD/_MT 注入 Debug 感知 genex）。须加 DEFINED 守卫：普通 set() 会
+# 生成同名普通变量遮蔽 -D 缓存值（runner 实测 /MT 组合被默认 genex 覆盖成
+# /MD，SA-9 VCRUNTIME140 断言失败）
+if(NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+endif()
 
 add_library(vmath
     src/vmath_core.c
@@ -26,6 +30,13 @@ set_target_properties(vmath PROPERTIES
 )
 if(BUILD_SHARED_LIBS)
     set_target_properties(vmath PROPERTIES VERSION 1.0.0 SOVERSION 1)
+    # MinGW 前端（windows gcc / clang-gnu）：CMake 默认给 DLL 加 lib 前缀
+    # （libvmath.dll），与全仓口径 vmath.dll（native/Makefile/SA-4/RV-4）不一致
+    # → 去 lib 前缀（import lib 名 libvmath.dll.a 走 IMPORT_PREFIX，不受影响）
+    if(WIN32 AND NOT CMAKE_C_COMPILER_ID STREQUAL "MSVC"
+             AND NOT CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+        set_target_properties(vmath PROPERTIES PREFIX "")
+    endif()
     if(WIN32)
         # 导出契约（5.3/S9）：NONAME .def 只绑定 MSVC 前端（cl / clang-cl）。
         # MinGW 前端（msys2 四环境）按名全导出（SA-5 断言 6 API + vmath_errno）；

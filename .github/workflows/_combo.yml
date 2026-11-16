@@ -137,6 +137,9 @@ jobs:
                 esac
                 CCBIN="$(cygpath -m "$MSYSROOT/$MDIR/bin/$MCC")"
                 [ -f "$MSYSROOT/$MDIR/bin/$MCC" ] || { echo "FAIL: msys2 compiler not found: $CCBIN"; exit 1; }
+                # 编译器探针：MINGW32 曾出现 gcc 被 msys make spawn 后静默退出 1（无任何
+                # 诊断输出）——探针把工具链可运行性显式留痕，失败时输出可见
+                "$CCBIN" --version || { echo "FAIL: compiler probe rc=$? : $CCBIN --version"; exit 1; }
                 ARBIN="$(cygpath -m "$MSYSROOT/$MDIR/bin/ar.exe")"
                 "$MAKEBIN" -f "$SRCDIR/Makefile" srcdir="$SRCDIR" OS=msys2 TOOLSET="$MTOOLSET" VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" CC="$CCBIN" AR="$ARBIN" selftest
               else
@@ -166,6 +169,8 @@ jobs:
         run: |
           OSPREFIX="${{ inputs.os }}"; [ "$OSPREFIX" = windows ] && OSPREFIX=win
           TAG="${OSPREFIX}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
+          # nmake 方言独立标签（nmake.ps1 按 win_nmake_* 落盘，与 F-09-05 汇总行一致）
+          [ "${{ inputs.group }}" = "make/nmake" ] && TAG="win_nmake_${{ inputs.variant }}_${{ inputs.cfg }}"
           case "${{ inputs.os }}" in
             linux) ./scripts/linux/run.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
             macos) ./scripts/macos/run.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
@@ -180,6 +185,8 @@ jobs:
         run: |
           OSPREFIX="${{ inputs.os }}"; [ "$OSPREFIX" = windows ] && OSPREFIX=win
           TAG="${OSPREFIX}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}"
+          # nmake 方言独立标签（与 RV 步同口径）
+          [ "${{ inputs.group }}" = "make/nmake" ] && TAG="win_nmake_${{ inputs.variant }}_${{ inputs.cfg }}"
           case "${{ inputs.os }}" in
             linux) ./scripts/linux/analyze.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;
             macos) ./scripts/macos/analyze.sh "$TAG" "${{ inputs.kind }}" "${{ inputs.group }}" ;;

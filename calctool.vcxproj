@@ -62,5 +62,11 @@
   <ItemGroup>
     <ClCompile Include="src\calctool.c" />
   </ItemGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)' == 'Release'">
+    <Link>
+      <!-- SA-3 契约：Release 不得产 pdb（同 vmath.vcxproj） -->
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
