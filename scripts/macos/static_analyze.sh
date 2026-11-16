@@ -55,6 +55,7 @@ fi
 if [ -f "$LIB_DYLIB" ]; then
     otool -L "$LIB_DYLIB"          > "$REPORT/layer1/otool_L_dylib.txt" 2>&1
     nm -gU "$LIB_DYLIB"            > "$REPORT/layer1/nm_gU_dylib.txt" 2>&1
+    strings "$LIB_DYLIB"           > "$REPORT/layer1/strings_dylib.txt" 2>&1
 fi
 
 # ② 第三方交叉验证（缺失即记录）
@@ -98,9 +99,13 @@ else
     record SA-1 FAIL "archs=$archs want=$want"
 fi
 
-# SA-2 编译器名+版本（DW_AT_producer 来自 DWARF 调试信息；Release 构建无
-# -g 无 DWARF，二进制内客观无 producer 串 → deferred，Debug 组合做真实断言）
-ver=$(grep -oE 'Apple clang version [0-9.]+' "$REPORT/layer1/dwarfdump.txt" | head -1 | grep -oE '[0-9.]+' | head -1)
+# SA-2 编译器名+版本（DW_AT_producer 来自 DWARF；字符串源多回退：
+# dwarfdump.txt → strings(calctool) → strings(dylib)。
+# Release 构建无 -g 无 DWARF，二进制内客观无 producer 串 → deferred，
+# Debug 组合做真实断言）
+ver=$(grep -oE 'Apple clang version [0-9.]+' "$REPORT/layer1/dwarfdump.txt" 2>/dev/null | head -1 | grep -oE '[0-9.]+' | head -1)
+[ -z "$ver" ] && ver=$(grep -oE 'Apple clang version [0-9.]+' "$REPORT/layer1/strings.txt" 2>/dev/null | head -1 | grep -oE '[0-9.]+' | head -1)
+[ -z "$ver" ] && ver=$(grep -oE 'Apple clang version [0-9.]+' "$REPORT/layer1/strings_dylib.txt" 2>/dev/null | head -1 | grep -oE '[0-9.]+' | head -1)
 if [ -n "$ver" ]; then
     record SA-2 PASS "compiler: apple-clang $ver (DW_AT_producer)"
 else
@@ -108,8 +113,17 @@ else
 fi
 
 # SA-3 Debug/Release（dSYM/调试信息 + cfg 标记）
-marker=$(grep -o 'cfg=[a-zA-Z_-]*' "$REPORT/layer1/strings.txt" | head -1)
+# cfg= 标记在库代码内：shared 时字符串在 vmath.dylib，static 时链入 calctool
+if [ -f "$LIB_DYLIB" ]; then
+    STR_SRC="$REPORT/layer1/strings_dylib.txt"
+else
+    STR_SRC="$REPORT/layer1/strings.txt"
+fi
+marker=$(grep -o 'cfg=[a-zA-Z_-]*' "$STR_SRC" 2>/dev/null | head -1)
 dbg=$(grep -c 'DW_TAG_compile_unit' "$REPORT/layer1/dwarfdump.txt" 2>/dev/null || true)
+dbg=${dbg:-0}
+[ "$dbg" -eq 0 ] && dbg=$(grep -c 'LC_DEBUG_INFO' "$REPORT/layer1/otool_l.txt" 2>/dev/null || true)
+dbg=${dbg:-0}
 case "$CFG" in
     Debug)   ok=0; { [ "$marker" = "cfg=_DEBUG" ] || [ "$marker" = "cfg=no-NDEBUG" ]; } && [ "$dbg" -gt 0 ] && ok=1 ;;
     Release) ok=0; [ "$marker" = "cfg=NDEBUG" ] && ok=1 ;;
