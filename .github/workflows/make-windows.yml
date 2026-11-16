@@ -1,11 +1,12 @@
-# make-windows.yml —— Group M·Windows 18 组合（F-09-03；GNU make/msys2 8 + nmake 10）
+# make-windows.yml —— Group M·Windows 18 组合（F-09-03；GNU make/msys2 8 + nmake 10，
+# nmake 10 = msvc 8 + clang-cl 2（F-05-02）；组合口径不含 kind（kind 为组合内子目录）
 name: make-windows
 
 on:
   workflow_call:
   workflow_dispatch:
     inputs:
-      toolset: { description: 'msys2|msvc（空=全部）', default: '' }
+      toolset: { description: 'msys2|msvc|clang-cl（空=全部）', default: '' }
       variant: { description: '变体（空=全量）', default: '' }
       cfg: { description: 'Debug|Release（空=全量）', default: '' }
       kind: { description: 'static|shared（空=全量）', default: '' }
@@ -43,38 +44,40 @@ jobs:
       filter_variant: ${{ inputs.variant }}
       filter_cfg: ${{ inputs.cfg }}
       filter_kind: ${{ inputs.kind }}
-      group: make/msys2
+      group: make/gnu
 
   nmake:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { variant: x86_MD, cfg: Debug, kind: static }
-          - { variant: x86_MD, cfg: Debug, kind: shared }
-          - { variant: x86_MD, cfg: Release, kind: static }
-          - { variant: x86_MD, cfg: Release, kind: shared }
-          - { variant: x86_MT, cfg: Debug, kind: static }
-          - { variant: x86_MT, cfg: Debug, kind: shared }
-          - { variant: x86_MT, cfg: Release, kind: static }
-          - { variant: x86_MT, cfg: Release, kind: shared }
-          - { variant: x64_MD, cfg: Debug, kind: static }
-          - { variant: x64_MD, cfg: Debug, kind: shared }
-          - { variant: x64_MD, cfg: Release, kind: static }
-          - { variant: x64_MD, cfg: Release, kind: shared }
-          - { variant: x64_MT, cfg: Debug, kind: static }
-          - { variant: x64_MT, cfg: Debug, kind: shared }
-          - { variant: x64_MT, cfg: Release, kind: static }
-          - { variant: x64_MT, cfg: Release, kind: shared }
-          - { variant: x64, cfg: Debug, kind: static }
-          - { variant: x64, cfg: Debug, kind: shared }
-          - { variant: x64, cfg: Release, kind: static }
-          - { variant: x64, cfg: Release, kind: shared }
-    if: inputs.toolset == '' || inputs.toolset == 'msvc'
+          # msvc 8（x86/x64 × /MD /MT × Debug/Release）
+          - { toolset: msvc, variant: x86_MD, cfg: Debug, kind: static }
+          - { toolset: msvc, variant: x86_MD, cfg: Debug, kind: shared }
+          - { toolset: msvc, variant: x86_MD, cfg: Release, kind: static }
+          - { toolset: msvc, variant: x86_MD, cfg: Release, kind: shared }
+          - { toolset: msvc, variant: x86_MT, cfg: Debug, kind: static }
+          - { toolset: msvc, variant: x86_MT, cfg: Debug, kind: shared }
+          - { toolset: msvc, variant: x86_MT, cfg: Release, kind: static }
+          - { toolset: msvc, variant: x86_MT, cfg: Release, kind: shared }
+          - { toolset: msvc, variant: x64_MD, cfg: Debug, kind: static }
+          - { toolset: msvc, variant: x64_MD, cfg: Debug, kind: shared }
+          - { toolset: msvc, variant: x64_MD, cfg: Release, kind: static }
+          - { toolset: msvc, variant: x64_MD, cfg: Release, kind: shared }
+          - { toolset: msvc, variant: x64_MT, cfg: Debug, kind: static }
+          - { toolset: msvc, variant: x64_MT, cfg: Debug, kind: shared }
+          - { toolset: msvc, variant: x64_MT, cfg: Release, kind: static }
+          - { toolset: msvc, variant: x64_MT, cfg: Release, kind: shared }
+          # clang-cl 2（P6：MSVC ABI；nmake.ps1 传 -CC clang-cl）
+          - { toolset: clang-cl, variant: x64, cfg: Debug, kind: static }
+          - { toolset: clang-cl, variant: x64, cfg: Debug, kind: shared }
+          - { toolset: clang-cl, variant: x64, cfg: Release, kind: static }
+          - { toolset: clang-cl, variant: x64, cfg: Release, kind: shared }
+    if: inputs.toolset == '' || inputs.toolset == 'msvc' || inputs.toolset == 'clang-cl'
     uses: ./.github/workflows/_combo.yml
     with:
       os: windows
-      toolset: msvc
+      toolset: ${{ matrix.toolset }}
       variant: ${{ matrix.variant }}
       cfg: ${{ matrix.cfg }}
       kind: ${{ matrix.kind }}
