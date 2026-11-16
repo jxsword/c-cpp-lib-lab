@@ -14,6 +14,14 @@ $tag = "win_nmake_${Variant}_${Cfg}"
 $b = Join-Path $root "build\make\nmake\$tag\$Kind"
 New-Item -ItemType Directory -Force -Path $b | Out-Null
 
+# Git usr/bin 的 coreutils link(1) 会遮蔽 VS link.exe——VC bin 前置 PATH（与 native.ps1 同守卫；
+# nmake 内部以 PATH 解析 $(LIB)=lib / $(LINK)=link / cl）
+$vcarch = if ($Variant.StartsWith('x64')) { 'x64' } else { 'x86' }
+if ($env:VCToolsInstallDir) {
+    $vcbin = Join-Path $env:VCToolsInstallDir "bin\Hostx64\$vcarch"
+    if (Test-Path $vcbin) { $env:PATH = "$vcbin;$env:PATH" }
+}
+
 $nmake = Get-Command nmake -ErrorAction SilentlyContinue
 if (-not $nmake) {
     Write-Note 'nmake not in PATH (vcvars environment required) — full run deferred to CI (F-09-02 windows runner)'

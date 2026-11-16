@@ -35,7 +35,7 @@
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
     <!-- RuntimeLibrary 由命令行 /p: 注入：MultiThreadedDLL（/MD）或 MultiThreaded（/MT）；
-         Debug 自动 *d（/MDd /MTd）由 MSVC 编译器选项规则处理 -->
+         Debug 由 msbuild.ps1 注入 MultiThreadedDebug(DLL)（/MDd /MTd，MSBuild 无 CMake 式自动 *d） -->
     <RuntimeLibrary Condition="'$(RuntimeLibrary)' == ''">MultiThreadedDLL</RuntimeLibrary>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -55,14 +55,15 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(ConfigurationType)' == 'DynamicLibrary'">
     <ClCompile>
-      <!-- 形态注入：动态 → CALC_BUILD_DLL（覆盖默认 CALC_STATIC） -->
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);CALC_BUILD_DLL</PreprocessorDefinitions>
+      <!-- 形态注入：动态 → CALC_BUILD_DLL（替换语义覆盖默认 CALC_STATIC，
+           不用 %() 追加——两者同时定义时 calc_export.h 按 CALC_STATIC 分派，库形态报告会错标 static） -->
+      <PreprocessorDefinitions>CALC_BUILD_DLL</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <!-- calctool.exe 由 calctool.vcxproj 独立产出（库目标不含 main） -->
     <ClCompile Include="src\vmath_core.c" />
     <ClCompile Include="src\vmath_report.c" />
-    <ClCompile Include="src\calctool.c" />
   </ItemGroup>
   <ItemGroup>
     <!-- .def 仅动态（ModuleDefinitionFile 条件挂载） -->
