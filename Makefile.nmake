@@ -35,6 +35,14 @@ CRT      = $(BASE_CRT)
 CLFLAGS  = /O2 /DNDEBUG
 !ENDIF
 
+# /DEBUG 是链接期旗标：静态 app 的独立 $(TOOLLINK) 链接行不经过 CLFLAGS，
+# Debug 需显式带 /DEBUG 产 exe pdb（SA-3；msvc 侧曾靠编译器 VC*.pdb 误通过）
+!IF "$(CFG)" == "Debug"
+LNKDBG   = /DEBUG
+!ELSE
+LNKDBG   =
+!ENDIF
+
 # ---- 机器（x86 / x64）----
 !IF "$(VARIANT)" == "x86_MD" || "$(VARIANT)" == "x86_MT"
 MACHINE = /MACHINE:X86
@@ -69,7 +77,7 @@ lib:
 
 app:
 	$(CC) /nologo $(CLFLAGS) $(CRT) $(DEF_APP) $(INCLUDES) /c $(SRCDIR)\src\calctool.c /Fo$(OUTDIR)\calctool.obj
-	$(TOOLLINK) /nologo $(OUTDIR)\calctool.obj $(OUTDIR)\vmath.lib /OUT:$(OUTDIR)\calctool.exe $(MACHINE)
+	$(TOOLLINK) /nologo $(OUTDIR)\calctool.obj $(OUTDIR)\vmath.lib /OUT:$(OUTDIR)\calctool.exe $(MACHINE) $(LNKDBG)
 
 selftest: all
 	$(OUTDIR)\calctool.exe --self-test
