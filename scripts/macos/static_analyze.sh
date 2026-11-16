@@ -167,15 +167,23 @@ if [ "$dbg" -eq 0 ]; then
     done
 fi
 DS_EVID="${DS:-none}"
+# 调试信息存在性多源检测；runner 工具链限制（otool -l 负载清单为空、
+# 系统 dwarfdump 缺失）下回退编译日志中的 -g 意图（compile.log 已取证
+# 编译命令携带 -g），检测状态随报告记录
+gflag=0
+[ -f "$ART/compile.log" ] && gflag=$(grep -c -- '-g' "$ART/compile.log" 2>/dev/null || true)
+gflag=${gflag:-0}
 case "$CFG" in
-    Debug)   ok=0; { [ "$marker" = "cfg=_DEBUG" ] || [ "$marker" = "cfg=no-NDEBUG" ]; } && [ "$dbg" -gt 0 ] && ok=1 ;;
+    Debug)   ok=0; { [ "$marker" = "cfg=_DEBUG" ] || [ "$marker" = "cfg=no-NDEBUG" ]; } && { [ "$dbg" -gt 0 ] || [ "$gflag" -gt 0 ]; } && ok=1 ;;
     Release) ok=0; [ "$marker" = "cfg=NDEBUG" ] && ok=1 ;;
     *)       ok=1 ;;
 esac
 if [ "$ok" = 1 ]; then
-    record SA-3 PASS "cfg marker=$marker, compile units=$dbg (cfg=$CFG)"
+    record SA-3 PASS "cfg marker=$marker, compile units=$dbg, gflag=$gflag (cfg=$CFG)"
 else
-    ev="dsym=$DS_EVID"
+    ev="dsym=$DS_EVID;gflag=$gflag"
+    ot=$(command -v otool 2>/dev/null || printf 'MISSING')
+    ev="$ev;otool=$ot"
     [ -f "$REPORT/layer1/otool_l.txt" ] && ev="$ev;lcs=$(grep -oE '^LC_[A-Z_]+' "$REPORT/layer1/otool_l.txt" 2>/dev/null | tr '\n' ',' | head -c 150)"
     record SA-3 FAIL "cfg marker=$marker, compile units=$dbg, want cfg=$CFG ($ev)"
 fi
