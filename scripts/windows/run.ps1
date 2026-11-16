@@ -11,7 +11,9 @@ $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path "$PSScriptRoot\..\..").Path
 $bin = Join-Path $root "build\$Group\$Tag\$Kind\calctool.exe"
 $outDir = Join-Path $root "reports\$Tag\run"
-$outFile = Join-Path $outDir "${Tag}_${Group}_${Kind}.txt"
+# group 方言标签含 /（make/gnu）：文件名须去斜杠，否则 Add-Content 建不出路径
+$groupSafe = $Group -replace '/', '-'
+$outFile = Join-Path $outDir "${Tag}_${groupSafe}_${Kind}.txt"
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 if (-not (Test-Path $bin)) { Write-Fail "executable not found: $bin"; exit 1 }
 
