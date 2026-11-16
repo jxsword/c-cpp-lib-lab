@@ -24,7 +24,7 @@ function Capture([string]$rv, [int]$want, [string[]]$cmdArgs) {
     $rc = $p.ExitCode
     $lines += "----- exit code: $rc (expect $want) -----"
     $lines + '' | Add-Content $outFile
-    if ($rc -ne $want) { Write-Fail "$rv: exit=$rc want=$want" } else { Write-Pass "$rv: exit=$rc ($Tag/$Kind)" }
+    if ($rc -ne $want) { Write-Fail "${rv}: exit=$rc want=$want" } else { Write-Pass "${rv}: exit=$rc ($Tag/$Kind)" }
 }
 
 Capture 'RV-1' 0 @($bin, '--self-test')

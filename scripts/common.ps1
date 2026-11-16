@@ -14,7 +14,7 @@ function Get-ComboTag([string]$Toolset, [string]$Variant, [string]$Cfg) {
 function Assert-NoArtifacts([string]$Root) {
     $patterns = @('*.o', '*.obj', '*.a', '*.lib', '*.so', '*.dll', '*.dylib', '*.pdb')
     $found = Get-ChildItem -LiteralPath $Root -Recurse -File -Include $patterns -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notmatch '\\build\\|\\\.git\\' }
+        Where-Object { $_.FullName -notmatch '[\\/](build|\.git)[\\/]' }
     @($found).Count -eq 0
 }
 
@@ -25,12 +25,14 @@ function Get-MsvcCrtFlag([string]$Variant, [string]$Cfg) {
 }
 
 # msys2 四环境 → 工具链前缀（C8：四环境独立目录不混链）
+# setup-msys2@v2 默认安装到 $env:RUNNER_TEMP\msys64；本机调试（无 RUNNER_TEMP）回退 C:\msys64
 function Get-Msys2ToolPrefix([string]$Variant) {
+    $root = if ($env:RUNNER_TEMP) { Join-Path $env:RUNNER_TEMP 'msys64' } else { 'C:\msys64' }
     switch ($Variant) {
-        'MINGW64'  { 'C:\msys64\mingw64\bin\gcc.exe' }
-        'MINGW32'  { 'C:\msys64\mingw32\bin\gcc.exe' }
-        'UCRT64'   { 'C:\msys64\ucrt64\bin\gcc.exe' }
-        'CLANG64'  { 'C:\msys64\clang64\bin\clang.exe' }
+        'MINGW64'  { Join-Path $root 'mingw64\bin\gcc.exe' }
+        'MINGW32'  { Join-Path $root 'mingw32\bin\gcc.exe' }
+        'UCRT64'   { Join-Path $root 'ucrt64\bin\gcc.exe' }
+        'CLANG64'  { Join-Path $root 'clang64\bin\clang.exe' }
         default    { $null }
     }
 }

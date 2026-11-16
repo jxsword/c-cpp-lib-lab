@@ -200,6 +200,7 @@ jobs:
           name: reports-${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}_${{ inputs.kind }}
           path: |
             reports/**/native/*.md
+            reports/**/native/*.txt
             reports/**/run/*.txt
             reports/**/deps/*.json
           if-no-files-found: ignore

@@ -192,7 +192,10 @@ static int cmd_dynamic_win(int argc, char **argv)
         (void)FreeLibrary(handle);
         return 2;
     }
-    printf("--dynamic: loaded %s, named lookups 5/6 (+build_info by ordinal below)\n", path);
+    printf("--dynamic: loaded %s, named lookups 5/6 (+build_info contract check below)\n", path);
+#if defined(_MSC_VER)
+    /* .def @5 NONAME（PLAN 5.2 #8）：按名必 NULL（A2），仅 ordinal 5 可寻址（A3）。
+     * 契约只绑定 .def——仅 msvc/clang-cl 构建走 def 导出（clang-cl 定义 _MSC_VER 且同样 /DEF）。 */
     if (api.build_info != NULL) {
         fprintf(stderr, "--dynamic: UNEXPECTED: NONAME symbol resolved by name (A2 violated)\n");
         rc = 2;
@@ -207,6 +210,15 @@ static int cmd_dynamic_win(int argc, char **argv)
         return 2;
     }
     printf("--dynamic: GetProcAddress(h, MAKEINTRESOURCEA(5)) resolved vmath_build_info\n");
+#else
+    /* MinGW（msys2）：无 .def，默认按名全导出（SA-5 语义），build_info 按名必须可解析 */
+    if (api.build_info == NULL) {
+        fprintf(stderr, "--dynamic: UNEXPECTED: build_info not resolvable by name on MinGW\n");
+        rc = 2;
+    } else {
+        printf("--dynamic: build_info resolved by name (MinGW default export, no NONAME contract)\n");
+    }
+#endif
 
     api.set_logger(cli_log);
     if (strcmp(argv[arg_base], "add") == 0 && arg_base + 2 < argc) {
@@ -391,6 +403,7 @@ static int cmd_self_test(void)
 /* RV 通道命令：--dynamic [libpath] <command> [args]
  * dlopen 绝对路径 → dlsym 按名 → 函数表（成员序=ordinal）→ 调用 →
  * set_logger(NULL) 注销 → dlclose → 卸载后不持有库内地址。 */
+#if !defined(_WIN32) /* dlopen/dlsym/dlclose 为 POSIX 专属；Windows 走 cmd_dynamic_win */
 static int cmd_dynamic(int argc, char **argv)
 {
     char path[4096];
@@ -480,6 +493,8 @@ static int cmd_dynamic(int argc, char **argv)
     memset(&api, 0, sizeof api);
     return rc;
 }
+
+#endif /* !_WIN32 */
 
 /* 桩：打包发布属 F-09-07 */
 static int cmd_bundle_stub(void)
