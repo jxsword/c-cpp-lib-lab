@@ -18,7 +18,9 @@ TAG="$1"; KIND="$2"; GROUP="$3"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BIN="$ROOT/build/$GROUP/$TAG/$KIND/calctool"
 OUT_DIR="$ROOT/reports/$TAG/run"
-OUT_FILE="$OUT_DIR/${TAG}_${GROUP}_${KIND}.txt"
+# group 方言标签含 /（make/gnu）：文件名须去斜杠（windows run.ps1 同款修复），
+# 否则报告文件建不出来、RV 输出全部丢失
+OUT_FILE="$OUT_DIR/${TAG}_${GROUP//\//-}_${KIND}.txt"
 
 if [ ! -x "$BIN" ]; then
     calc_log_fail "executable not found: $BIN"
