@@ -62,7 +62,9 @@ else {
     if (-not (Test-Path $make)) { Write-Output "FAIL: mingw32-make not found: $make"; exit 1 }
     $gen = @('-G', 'MinGW Makefiles', "-DCMAKE_MAKE_PROGRAM=$make", "-DCMAKE_C_COMPILER=$cc")
 }
-cmake -S $root -B $b @gen -DCMAKE_BUILD_TYPE=$Cfg -DBUILD_SHARED_LIBS=$sh @rta
+# pwsh 7.7：以 - 开头的裸词中内嵌 $var 不展开（实测字面传递，曾致 CMAKE_BUILD_TYPE
+# 收到字面 "$Cfg"、静态组合被 option 默认 ON 建成 shared）——须显式双引号
+cmake -S $root -B $b @gen "-DCMAKE_BUILD_TYPE=$Cfg" "-DBUILD_SHARED_LIBS=$sh" @rta
 if ($LASTEXITCODE -ne 0) { exit 1 }
 cmake --build $b
 if ($LASTEXITCODE -ne 0) { exit 1 }
