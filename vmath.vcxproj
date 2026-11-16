@@ -79,5 +79,12 @@
       <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)' == 'Release'">
+    <Link>
+      <!-- SA-3 契约：Release 不得产 pdb。v143 工具集默认 GenerateDebugInformation 会
+           翻转（runner 实测 Release 组合 OutDir 出现 pdb，SA-3 FAIL）→ 显式关闭 -->
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
