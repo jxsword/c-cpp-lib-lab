@@ -4,6 +4,12 @@
 name: run-output
 
 on:
+  workflow_call:
+    inputs:
+      os:    { type: string, required: false, default: 'linux' }
+      group: { type: string, required: false, default: 'native' }
+      tag:   { type: string, required: false, default: 'linux_gcc_x64_Release' }
+      kind:  { type: string, required: false, default: 'shared' }
   workflow_dispatch:
     inputs:
       os: { description: 'linux|macos|windows', default: 'linux' }
