@@ -148,8 +148,12 @@ jobs:
                 # tee compile.log：SA-3 证据链口径与 linux/macos 一致
                 "$MAKEBIN" -f "$SRCDIR/Makefile" srcdir="$SRCDIR" OS=msys2 TOOLSET="$MTOOLSET" VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" CC="$CCBIN" AR="$ARBIN" selftest 2>&1 | tee compile.log
               else
-                # tee compile.log：SA-3 macOS Debug 的 gflag 回退证据（编译命令含 -g 意图留痕）
-                make -f "$SRCDIR/Makefile" srcdir="$SRCDIR" VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" selftest 2>&1 | tee compile.log
+                # OS 必须显式传：Makefile 默认 OS ?= linux，macOS 会建出 ELF 命名的
+                # libvmath.so 并被链接引用，dyld 报 Library not loaded ./libvmath.so
+                #（all.yml 43978039343 实测）。toolset 亦按 OS 留痕（仅 analyze 目标用）
+                make -f "$SRCDIR/Makefile" srcdir="$SRCDIR" OS="${{ inputs.os }}" \
+                  TOOLSET="$([ "${{ inputs.os }}" = macos ] && echo clang || echo gcc)" \
+                  VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" selftest 2>&1 | tee compile.log
               fi
               ;;
             make/nmake)
