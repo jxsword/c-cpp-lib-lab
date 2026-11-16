@@ -56,6 +56,14 @@ else
   DEF_APP  = -DCALC_STATIC
 endif
 
+ifeq ($(OS),msys2)
+  # PE/MinGW：按名全导出（与 native.ps1 口径一致，SA-5 断言 6 API + vmath_errno）。
+  # -fvisibility=hidden 会藏掉无导出标记的裸符号 vmath_errno（calc_export.h 在
+  # Windows 分支用 __declspec(dllexport)，不受 visibility 控制）；-fPIC 在 PE 上
+  # 是 no-op，一并去掉。
+  VIS =
+endif
+
 CFLAGS_ALL = $(CFG_FLAGS) $(ARCH_FLAGS) $(VIS)
 INCLUDES   = -I$(srcdir)/include
 LIBSRC     = $(srcdir)/src/vmath_core.c $(srcdir)/src/vmath_report.c

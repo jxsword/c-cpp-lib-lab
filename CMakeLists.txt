@@ -27,7 +27,13 @@ set_target_properties(vmath PROPERTIES
 if(BUILD_SHARED_LIBS)
     set_target_properties(vmath PROPERTIES VERSION 1.0.0 SOVERSION 1)
     if(WIN32)
-        target_sources(vmath PRIVATE def/vmath.def)
+        # 导出契约（5.3/S9）：NONAME .def 只绑定 MSVC 前端（cl / clang-cl）。
+        # MinGW 前端（msys2 四环境）按名全导出（SA-5 断言 6 API + vmath_errno）；
+        # binutils ld 会自动消费 .def 输入（pe.em def_file_parse，2026-11-17 查证），
+        # 若挂载会丢掉按名导出口径 → 仅 MSVC 前端挂载。
+        if(CMAKE_C_COMPILER_ID STREQUAL "MSVC" OR CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+            target_sources(vmath PRIVATE def/vmath.def)
+        endif()
     endif()
 endif()
 # 静态库不带隐藏可见性：不设置任何 visibility preset（默认导出）。
