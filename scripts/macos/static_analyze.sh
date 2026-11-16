@@ -136,7 +136,9 @@ fi
 if [ -n "$ver" ]; then
     record SA-2 PASS "compiler: apple-clang $ver (DW_AT_producer)"
 else
-    record SA-2 PASS "deferred: no DWARF producer string in $CFG build (compiler identification exercised on Debug combos; dsym=${DS:-none})"
+    ev="dsym=${DS:-none}"
+    [ -f "$ART/compile.log" ] && ev="$ev|cmds=$(head -1 "$ART/compile.log" 2>/dev/null | tr '\n' ' ')"
+    record SA-2 PASS "deferred: no DWARF producer string in $CFG build (compiler identification exercised on Debug combos; $ev)"
 fi
 
 # SA-3 Debug/Release（dSYM/调试信息 + cfg 标记）
@@ -173,7 +175,9 @@ esac
 if [ "$ok" = 1 ]; then
     record SA-3 PASS "cfg marker=$marker, compile units=$dbg (cfg=$CFG)"
 else
-    record SA-3 FAIL "cfg marker=$marker, compile units=$dbg, want cfg=$CFG (dsym=$DS_EVID)"
+    ev="dsym=$DS_EVID"
+    [ -f "$REPORT/layer1/otool_l.txt" ] && ev="$ev|otool_l_head=$(head -c 60 "$REPORT/layer1/otool_l.txt" 2>/dev/null | tr '\n' ' ')"
+    record SA-3 FAIL "cfg marker=$marker, compile units=$dbg, want cfg=$CFG ($ev)"
 fi
 
 # SA-4 库形态
