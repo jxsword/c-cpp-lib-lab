@@ -140,6 +140,14 @@ jobs:
                 # 编译器探针：MINGW32 曾出现 gcc 被 msys make spawn 后静默退出 1（无任何
                 # 诊断输出）——探针把工具链可运行性显式留痕，失败时输出可见
                 "$CCBIN" --version || { echo "FAIL: compiler probe rc=$? : $CCBIN --version"; exit 1; }
+                # 双通道编译探针：probe1=bash 直接 spawn；probe2=经 msys2 的 sh spawn
+                #（与 msys make 的 recipe 执行链同构），用于区分「工具链坏」与「msys spawn 链坏」
+                if "$CCBIN" -v -DCALC_STATIC "-I$SRCDIR/include" -c "$SRCDIR/src/vmath_core.c" -o probe.o 2>&1; then
+                  rm -f probe.o; echo "probe1 OK (bash spawn)"
+                else
+                  echo "FAIL: probe1 (bash spawn) rc=$?"
+                fi
+                "$MSYSROOT/usr/bin/sh.exe" -c "\"$CCBIN\" -v -DCALC_STATIC -I'$SRCDIR/include' -c '$SRCDIR/src/vmath_core.c' -o probe.o" 2>&1 && { rm -f probe.o; echo "probe2 OK (msys sh spawn)"; } || echo "FAIL: probe2 (msys sh spawn) rc=$?"
                 ARBIN="$(cygpath -m "$MSYSROOT/$MDIR/bin/ar.exe")"
                 "$MAKEBIN" -f "$SRCDIR/Makefile" srcdir="$SRCDIR" OS=msys2 TOOLSET="$MTOOLSET" VARIANT="${{ inputs.variant }}" CFG="${{ inputs.cfg }}" KIND="${{ inputs.kind }}" CC="$CCBIN" AR="$ARBIN" selftest
               else

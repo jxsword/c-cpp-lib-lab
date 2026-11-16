@@ -52,6 +52,9 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);$(AppDefine)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <!-- RuntimeLibrary 属性 -> 元数据接线（缺此行时 v143 默认全走 /MD(d)，
+           /p:RuntimeLibrary 注入无效，MT 组合 SA-9 失败，runner 实测） -->
+      <RuntimeLibrary>$(RuntimeLibrary)</RuntimeLibrary>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -63,8 +66,12 @@
     <ClCompile Include="src\calctool.c" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)' == 'Release'">
+    <ClCompile>
+      <!-- Release 默认 /GL：lib.exe /LTCG 会产 LTCG PDB 落 OutDir（SA-3 pdb=True）→ 显式关闭 -->
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+    </ClCompile>
     <Link>
-      <!-- SA-3 契约：Release 不得产 pdb（同 vmath.vcxproj） -->
+      <!-- SA-3 契约：Release 不得产 pdb → 显式关闭 -->
       <GenerateDebugInformation>false</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
