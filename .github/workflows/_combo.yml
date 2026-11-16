@@ -137,6 +137,11 @@ jobs:
                 esac
                 CCBIN="$(cygpath -m "$MSYSROOT/$MDIR/bin/$MCC")"
                 [ -f "$MSYSROOT/$MDIR/bin/$MCC" ] || { echo "FAIL: msys2 compiler not found: $CCBIN"; exit 1; }
+                # 环境工具链 bin 前置 PATH（C8 + DLL 依赖解析）：镜像 PATH 预装 C:\mingw64\bin
+                #（64 位 DLL），MINGW32 的 cc1.exe（32 位）沿 PATH 解析到 64 位 zlib1.dll 等
+                # 即静默死亡（gcc -v 取证：cc1 被调起后零输出退 1，两条 spawn 通道同现）
+                PATH="$MSYSROOT/$MDIR/bin:$PATH"
+                export PATH
                 # 编译器探针：MINGW32 曾出现 gcc 被 msys make spawn 后静默退出 1（无任何
                 # 诊断输出）——探针把工具链可运行性显式留痕，失败时输出可见
                 "$CCBIN" --version || { echo "FAIL: compiler probe rc=$? : $CCBIN --version"; exit 1; }
