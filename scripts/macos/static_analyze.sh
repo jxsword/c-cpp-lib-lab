@@ -99,13 +99,34 @@ else
     record SA-1 FAIL "archs=$archs want=$want"
 fi
 
+# dSYM 定位：macOS clang -g 默认将 DWARF 拆入 dSYM bundle（二进制内可能
+# 既无 producer 串也无 LC_DEBUG_INFO），优先读 dSYM 内的 DWARF
+find_dsym_dwarf()
+{
+    local base="$1" d
+    for d in "$base.dSYM/Contents/Resources/DWARF/$(basename "$base")"; do
+        if [ -f "$d" ]; then
+            printf '%s\n' "$d"
+            return 0
+        fi
+    done
+    return 1
+}
+
 # SA-2 编译器名+版本（DW_AT_producer 来自 DWARF；字符串源多回退：
-# dwarfdump.txt → strings(calctool) → strings(dylib)。
-# Release 构建无 -g 无 DWARF，二进制内客观无 producer 串 → deferred，
-# Debug 组合做真实断言）
-ver=$(grep -oE 'Apple clang version [0-9.]+' "$REPORT/layer1/dwarfdump.txt" 2>/dev/null | head -1 | grep -oE '[0-9.]+' | head -1)
-[ -z "$ver" ] && ver=$(grep -oE 'Apple clang version [0-9.]+' "$REPORT/layer1/strings.txt" 2>/dev/null | head -1 | grep -oE '[0-9.]+' | head -1)
-[ -z "$ver" ] && ver=$(grep -oE 'Apple clang version [0-9.]+' "$REPORT/layer1/strings_dylib.txt" 2>/dev/null | head -1 | grep -oE '[0-9.]+' | head -1)
+# dwarfdump.txt → strings(calctool) → strings(dylib) → dSYM DWARF）
+ver=""
+for src in dwarfdump strings strings_dylib; do
+    [ -n "$ver" ] && break
+    ver=$(grep -oE 'Apple clang version [0-9.]+' "$REPORT/layer1/$src.txt" 2>/dev/null | head -1 | grep -oE '[0-9.]+' | head -1)
+done
+if [ -z "$ver" ]; then
+    for base in "$BIN" "$LIB_DYLIB"; do
+        [ -n "$ver" ] && break
+        DS=$(find_dsym_dwarf "$base") || true
+        [ -n "$DS" ] && ver=$(strings "$DS" 2>/dev/null | grep -oE 'Apple clang version [0-9.]+' | head -1 | grep -oE '[0-9.]+' | head -1)
+    done
+fi
 if [ -n "$ver" ]; then
     record SA-2 PASS "compiler: apple-clang $ver (DW_AT_producer)"
 else
@@ -120,10 +141,21 @@ else
     STR_SRC="$REPORT/layer1/strings.txt"
 fi
 marker=$(grep -o 'cfg=[a-zA-Z_-]*' "$STR_SRC" 2>/dev/null | head -1)
-dbg=$(grep -c 'DW_TAG_compile_unit' "$REPORT/layer1/dwarfdump.txt" 2>/dev/null || true)
-dbg=${dbg:-0}
+dbg=0
+if [ -f "$REPORT/layer1/dwarfdump.txt" ]; then
+    dbg=$(grep -c 'DW_TAG_compile_unit' "$REPORT/layer1/dwarfdump.txt" 2>/dev/null || true)
+    dbg=${dbg:-0}
+fi
 [ "$dbg" -eq 0 ] && dbg=$(grep -c 'LC_DEBUG_INFO' "$REPORT/layer1/otool_l.txt" 2>/dev/null || true)
 dbg=${dbg:-0}
+if [ "$dbg" -eq 0 ]; then
+    for base in "$BIN" "$LIB_DYLIB"; do
+        [ "$dbg" -gt 0 ] && break
+        DS=$(find_dsym_dwarf "$base") || true
+        [ -n "$DS" ] && dbg=$(strings "$DS" 2>/dev/null | grep -c 'DW_TAG_compile_unit' || true)
+        dbg=${dbg:-0}
+    done
+fi
 case "$CFG" in
     Debug)   ok=0; { [ "$marker" = "cfg=_DEBUG" ] || [ "$marker" = "cfg=no-NDEBUG" ]; } && [ "$dbg" -gt 0 ] && ok=1 ;;
     Release) ok=0; [ "$marker" = "cfg=NDEBUG" ] && ok=1 ;;
@@ -177,9 +209,10 @@ if [ -f "$LIB_DYLIB" ]; then
         record SA-6 PASS "normalize_ absent from dylib global exports"
     fi
 else
-    if awk '$3 == "normalize_" && $2 == "t"' "$REPORT/layer1/nm_archive.txt" | grep -q normalize_; then
+    # Mach-O nm 符号带前导 _：剥离后判定 local(t)/全局/优化移除
+    if awk '{sub(/^_/, "", $3)} $3 == "normalize_" && $2 == "t"' "$REPORT/layer1/nm_archive.txt" | grep -q normalize_; then
         record SA-6 PASS "normalize_ local (t) in static archive"
-    elif grep -q 'normalize_' "$REPORT/layer1/nm_archive.txt"; then
+    elif awk '{sub(/^_/, "", $3)} $3 == "normalize_" && ($2 == "T" || $2 == "B")' "$REPORT/layer1/nm_archive.txt" | grep -q normalize_; then
         record SA-6 FAIL "normalize_ global in static archive"
     else
         record SA-6 PASS "normalize_ optimized out (no global symbol; export-table goal met)"
