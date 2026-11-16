@@ -13,10 +13,12 @@ VARIANT = x64_MD
 CFG     = Release
 KIND    = static
 # nmake 预定义命令宏只有 AS/CC/CPP/CXX/RC（MS Learn「Macros and NMAKE」Command macros 表，
-# 2026-11-17 查证）——LINK/LIB 无预定义；且 vcvars 的 LIB 环境变量（库路径表）会被继承为
-# 同名宏，必须在此显式定义覆盖。CC 由调用方传（msvc 默认 cl；clang-cl 组合传 clang-cl）。
-LIB  = lib
-LINK = link
+# 2026-11-17 查证）——LINK/LIB 无预定义。注意：nmake 的环境变量宏是「活绑定」——在
+# makefile 里定义 LIB=lib 会连真实环境变量 LIB（vcvars 的库路径表）一起改写，spawned
+# link.exe 因此丢 SDK 库路径报 LNK1104（runner 实测）——故用不撞名的 TOOLLIB/TOOLLINK。
+# CC 由调用方传（msvc 默认 cl；clang-cl 组合传 clang-cl）。
+TOOLLIB  = lib
+TOOLLINK = link
 
 # ---- CRT 与机器随 VARIANT/CFG 联动 ----
 !IF "$(VARIANT)" == "x86_MD" || "$(VARIANT)" == "x64_MD"
@@ -62,12 +64,12 @@ lib:
 !IF "$(KIND)" == "shared"
 	$(CC) /nologo $(CLFLAGS) $(CRT) $(DEF_LIB) /LD $(INCLUDES) $(SRCDIR)\src\vmath_core.c $(SRCDIR)\src\vmath_report.c /Fe$(LIBOUT) /link /DEF:$(SRCDIR)\def\vmath.def /IMPLIB:$(OUTDIR)\vmath.lib $(MACHINE)
 !ELSE
-	$(LIB) /nologo /OUT:$(OUTDIR)\vmath.lib $(OUTDIR)\vmath_core.obj $(OUTDIR)\vmath_report.obj
+	$(TOOLLIB) /nologo /OUT:$(OUTDIR)\vmath.lib $(OUTDIR)\vmath_core.obj $(OUTDIR)\vmath_report.obj
 !ENDIF
 
 app:
 	$(CC) /nologo $(CLFLAGS) $(CRT) $(DEF_APP) $(INCLUDES) /c $(SRCDIR)\src\calctool.c /Fo$(OUTDIR)\calctool.obj
-	$(LINK) /nologo $(OUTDIR)\calctool.obj $(OUTDIR)\vmath.lib /OUT:$(OUTDIR)\calctool.exe $(MACHINE)
+	$(TOOLLINK) /nologo $(OUTDIR)\calctool.obj $(OUTDIR)\vmath.lib /OUT:$(OUTDIR)\calctool.exe $(MACHINE)
 
 selftest: all
 	$(OUTDIR)\calctool.exe --self-test
