@@ -26,11 +26,18 @@ jobs:
         shell: bash
         run: |
           TAG="${{ inputs.tag }}"
-          VARIANT="${TAG##*_}"; REST="${TAG%_*}"; CFG="${REST##*_}"
+          # 组合标签 os_cc_<variant>_<cfg>：variant=第 3 段、cfg=第 4 段
+          # （旧实现 ${TAG##*_} 取到的是 cfg，runner 实测 FAIL: arch must be x86|x64）
+          VARIANT=$(echo "$TAG" | cut -d_ -f3)
+          CFG=$(echo "$TAG" | cut -d_ -f4)
           case "${{ inputs.os }}/${{ inputs.group }}" in
-            linux/native)  ARCH="${TAG##*_}"; ./scripts/linux/native.sh "$ARCH" "$CFG" "${{ inputs.kind }}" ;;
-            linux/cmake)   ARCH="${TAG##*_}"; ./scripts/linux/cmake.sh "$ARCH" "$CFG" "${{ inputs.kind }}" ;;
-            linux/make/gnu) VARIANT2=$(echo "$TAG" | cut -d_ -f4); ./scripts/linux/native.sh "$VARIANT2" "$CFG" "${{ inputs.kind }}" ;;
+            linux/native)   ./scripts/linux/native.sh "$VARIANT" "$CFG" "${{ inputs.kind }}" ;;
+            linux/cmake)    ./scripts/linux/cmake.sh "$VARIANT" "$CFG" "${{ inputs.kind }}" ;;
+            linux/make/gnu) # GNU make 方言：与 _combo 同构的 out-of-source 构建
+                            SRCDIR="$(pwd)"
+                            B="build/make/gnu/$TAG/${{ inputs.kind }}"
+                            mkdir -p "$B" && cd "$B"
+                            make -f "$SRCDIR/Makefile" srcdir="$SRCDIR" OS=linux TOOLSET=gcc VARIANT="$VARIANT" CFG="$CFG" KIND="${{ inputs.kind }}" selftest ;;
             *) echo "SKIP: ${{ inputs.os }}/${{ inputs.group }} handled by its runner workflow"; exit 0 ;;
           esac
       - name: SA three-layer static analysis
