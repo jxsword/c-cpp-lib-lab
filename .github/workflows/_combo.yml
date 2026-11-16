@@ -56,7 +56,7 @@ jobs:
 
   combo:
     needs: env
-    runs-on: ${{ inputs.os == 'linux' && 'ubuntu-latest' || inputs.os == 'macos' && 'macos-14' || 'windows-latest' }}
+    runs-on: ${{ inputs.os == 'linux' && 'ubuntu-latest' || inputs.os == 'macos' && 'macos-15' || 'windows-latest' }}
     env:
       FILTER_MATCH: ${{ (inputs.filter_variant == '' || inputs.filter_variant == inputs.variant) && (inputs.filter_cfg == '' || inputs.filter_cfg == inputs.cfg) && (inputs.filter_kind == '' || inputs.filter_kind == inputs.kind) }}
     outputs:
