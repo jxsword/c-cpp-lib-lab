@@ -34,6 +34,9 @@ endif
 ifeq ($(OS),macos)
   ARCH_FLAGS = -arch arm64
   # macOS 显式要求 gmake（7.2）；此处仅记录约定，CC 由调用方传 clang
+  # dylib install_name 用 @rpath（与 native.sh 口径一致）：缺省时 exe 记录裸名
+  # libvmath.dylib，dyld 运行期找不到 → RV exit=134（all.yml 43964553522 实测）
+  INSTALL_NAME = -Wl,-install_name,@rpath/libvmath.dylib
 endif
 # msys2：位数/CRT 由 msystem 决定，不加 arch 旗标
 
@@ -76,7 +79,7 @@ lib:
 ifeq ($(KIND),shared)
 	$(CC) $(CFLAGS_ALL) $(DEF_LIB) $(INCLUDES) -c $(srcdir)/src/vmath_core.c -o $(outdir)/vmath_core.o
 	$(CC) $(CFLAGS_ALL) $(DEF_LIB) $(INCLUDES) -c $(srcdir)/src/vmath_report.c -o $(outdir)/vmath_report.o
-	$(CC) $(ARCH_FLAGS) -shared $(VIS) -o $(DYLIB) $(outdir)/vmath_core.o $(outdir)/vmath_report.o
+	$(CC) $(ARCH_FLAGS) -shared $(VIS) $(INSTALL_NAME) -o $(DYLIB) $(outdir)/vmath_core.o $(outdir)/vmath_report.o
 ifeq ($(OS),msys2)
 	# PE 需要 import lib 供消费端链接（7.2：--out-implib）
 	$(CC) $(ARCH_FLAGS) -shared $(VIS) -o $(DYLIB) $(outdir)/vmath_core.o $(outdir)/vmath_report.o -Wl,--out-implib,$(outdir)/libvmath.dll.a
