@@ -137,7 +137,7 @@ if [ -n "$ver" ]; then
     record SA-2 PASS "compiler: apple-clang $ver (DW_AT_producer)"
 else
     ev="dsym=${DS:-none}"
-    [ -f "$ART/compile.log" ] && ev="$ev|cmds=$(head -1 "$ART/compile.log" 2>/dev/null | tr '\n' ' ')"
+    [ -f "$ART/compile.log" ] && ev="$ev;cmds=$(tr '\n' ';' < "$ART/compile.log" 2>/dev/null)"
     record SA-2 PASS "deferred: no DWARF producer string in $CFG build (compiler identification exercised on Debug combos; $ev)"
 fi
 
@@ -176,7 +176,7 @@ if [ "$ok" = 1 ]; then
     record SA-3 PASS "cfg marker=$marker, compile units=$dbg (cfg=$CFG)"
 else
     ev="dsym=$DS_EVID"
-    [ -f "$REPORT/layer1/otool_l.txt" ] && ev="$ev|otool_l_head=$(head -c 60 "$REPORT/layer1/otool_l.txt" 2>/dev/null | tr '\n' ' ')"
+    [ -f "$REPORT/layer1/otool_l.txt" ] && ev="$ev;lcs=$(grep -oE '^LC_[A-Z_]+' "$REPORT/layer1/otool_l.txt" 2>/dev/null | tr '\n' ',' | head -c 150)"
     record SA-3 FAIL "cfg marker=$marker, compile units=$dbg, want cfg=$CFG ($ev)"
 fi
 
