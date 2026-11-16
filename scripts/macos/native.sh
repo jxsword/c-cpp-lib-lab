@@ -37,10 +37,11 @@ if ! calc_assert_no_artifacts "$ROOT"; then
 fi
 
 CFG_FLAGS=$(calc_macos_cfg_flags "$CFG") || { calc_log_fail "bad cfg"; exit 2; }
-# 链接期旗标：clang 链接不显式带 -g 时调试信息不进最终产物（macOS 侧
-# 与 Windows 侧 /DEBUG 同类）——Debug 链接显式补 -g，SA-2/SA-3 依赖
+# 链接期旗标：plain -g 在链接时未把 DWARF 嵌入产物（run 43845872274
+# 取证：链接命令带 -g 仍无 LC_DEBUG_INFO）；-gsplit-dwarf 显式走 dSYM
+# 布局，SA-2/SA-3 的 dSYM 提取链依赖
 LINK_DBG=""
-[ "$CFG" = "Debug" ] && LINK_DBG="-g"
+[ "$CFG" = "Debug" ] && LINK_DBG="-g -gsplit-dwarf"
 
 run_cmd()
 {

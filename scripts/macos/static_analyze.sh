@@ -124,17 +124,17 @@ find_dsym_dwarf()
 ver=""
 for src in dwarfdump strings strings_dylib llvm_dwarfdump_debug; do
     [ -n "$ver" ] && break
-    ver=$(grep -oE 'Apple clang version [0-9.]+' "$REPORT/layer1/$src.txt" "$REPORT/layer2/$src.txt" 2>/dev/null | head -1 | grep -oE '[0-9.]+' | head -1)
+    ver=$(grep -oE '(Apple clang|clang) version [0-9.]+' "$REPORT/layer1/$src.txt" "$REPORT/layer2/$src.txt" 2>/dev/null | head -1 | grep -oE '[0-9.]+' | head -1)
 done
 if [ -z "$ver" ]; then
     for base in "$BIN" "$LIB_DYLIB"; do
         [ -n "$ver" ] && break
         DS=$(find_dsym_dwarf "$base") || true
-        [ -n "$DS" ] && ver=$(strings "$DS" 2>/dev/null | grep -oE 'Apple clang version [0-9.]+' | head -1 | grep -oE '[0-9.]+' | head -1)
+        [ -n "$DS" ] && ver=$(strings "$DS" 2>/dev/null | grep -oE '(Apple clang|clang) version [0-9.]+' | head -1 | grep -oE '[0-9.]+' | head -1)
     done
 fi
 if [ -n "$ver" ]; then
-    record SA-2 PASS "compiler: apple-clang $ver (DW_AT_producer)"
+    record SA-2 PASS "compiler: $ver (DW_AT_producer)"
 else
     ev="dsym=${DS:-none}"
     [ -f "$ART/compile.log" ] && ev="$ev;cmds=$(tr '\n' ';' < "$ART/compile.log" 2>/dev/null)"
