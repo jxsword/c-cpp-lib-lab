@@ -37,7 +37,7 @@ function Get-Dependents([string]$pe) {
 }
 
 function Classify([string]$name) {
-    if ($name -match '^api-ms-win-') { return 'api-set' }
+    if ($name -match '^(api|ext)-ms-win-') { return 'api-set' }
     if ($name -match '^(ntdll|kernel32|kernelbase|user32|msvcrt|ucrtbase)\.dll$') { return 'known-dll' }
     if ($name -match '^(msys-2\.0|libwinpthread|libgcc|libstdc\+\+)' -and $name -match '^msys-') { return 'msys2-env' }
     return 'system'
@@ -69,12 +69,15 @@ function Test-Symlink([string]$p) {
 
 # 递归发射节点：按 realpath 去重（PLAN 5.8.3：关联数组按 realpath 去重）。
 # 已展开的 realpath → 返回 dedup 节点（不递归，标记 dedup=true）；未展开 → 展开依赖。
+# 未解析节点（桩 dll / 缺失文件，real 为空）按 name 去重——ext-ms/api 桩名在
+# PE 密集依赖图中多次出现，不按名去重会导致组合爆炸（CI 实测 466KB 截断树）。
 function Add-Node([string]$name, [string]$path, [string]$indent) {
-    if ($path -and $seen.ContainsKey($path)) {
-        $origin = if ($path -like "$env:SystemRoot*") { 'system' } else { 'bundle' }
+    $key = if ($path) { $path } else { "unresolved:$name" }
+    if ($seen.ContainsKey($key)) {
+        $origin = if ($path -and $path -like "$env:SystemRoot*") { 'system' } elseif ($path) { 'bundle' } else { 'unresolved' }
         return [ordered]@{ name = $name; logical = $name; real = $path; origin = $origin; dedup = $true; children = @() }
     }
-    if ($path) { $seen[$path] = $true }
+    $seen[$key] = $true
     $origin = if ($path -like "$env:SystemRoot*") { 'system' } elseif ($path) { 'bundle' } else { 'unresolved' }
     $node = [ordered]@{ name = $name; logical = $name; real = $path; origin = $origin; children = @() }
     if ($path -and (Test-Path $path)) {
@@ -112,7 +115,7 @@ function Emit-TreeNode([hashtable]$node, [string]$indent, [string]$suffix) {
 $rootNode = Add-Node ([IO.Path]::GetFileName($Artifact)) $Artifact ''
 $tree.tree = @($rootNode)
 $tree.dedup = @($seen.Keys | Where-Object { $_ } | Sort-Object)
-$tree | ConvertTo-Json -Depth 16 | Set-Content "$OutBase.json"
+$tree | ConvertTo-Json -Depth 64 | Set-Content "$OutBase.json"
 
 $MDFile = "$OutBase.md"
 [IO.File]::WriteAllText($MDFile, '')
