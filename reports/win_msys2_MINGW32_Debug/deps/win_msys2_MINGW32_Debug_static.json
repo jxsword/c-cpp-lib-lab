@@ -1,0 +1,4 @@
+{
+  "error": "dumpbin unavailable (vcvars required); deferred to CI",
+  "tag": "win_msys2_MINGW32_Debug_static"
+}

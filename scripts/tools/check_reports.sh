@@ -35,7 +35,7 @@ for v in MINGW64 MINGW32 CLANG64 UCRT64; do
   done
 done
 for c in Debug Release; do
-  TAG_GROUPS["win_clangcl_x64_${c}"]="native cmake"
+  TAG_GROUPS["win_clang-cl_x64_${c}"]="native cmake"
 done
 # ② make 组：nmake 10 + msbuild 8
 for v in x86_MD x86_MT x64_MD x64_MT x64; do

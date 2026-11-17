@@ -1,0 +1,17 @@
+{
+  "tag": "macos_clang_arm64_Debug",
+  "kind": "static",
+  "group": "native",
+  "sa": [
+    {"id": "SA-1", "result": "PASS", "evidence": "lipo -archs=arm64 (variant=arm64)"},
+    {"id": "SA-2", "result": "PASS", "evidence": "deferred: no DWARF producer string in Debug build (compiler identification exercised on Debug combos; dsym=none;cmds=clang -g -O0 -D_DEBUG -arch arm64 -DCALC_STATIC -I/Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/include -c /Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/src/vmath_core.c -o /Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/build/native/macos_clang_arm64_Debug/static/vmath_core.o;clang -g -O0 -D_DEBUG -arch arm64 -DCALC_STATIC -I/Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/include -c /Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/src/vmath_report.c -o /Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/build/native/macos_clang_arm64_Debug/static/vmath_report.o;clang -g -O0 -D_DEBUG -arch arm64 -DCALC_STATIC -I/Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/include -c /Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/src/calctool.c -o /Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/build/native/macos_clang_arm64_Debug/static/calctool.o;ar rcs /Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/build/native/macos_clang_arm64_Debug/static/libvmath.a /Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/build/native/macos_clang_arm64_Debug/static/vmath_core.o /Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/build/native/macos_clang_arm64_Debug/static/vmath_report.o;clang -arch arm64 /Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/build/native/macos_clang_arm64_Debug/static/calctool.o -L/Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/build/native/macos_clang_arm64_Debug/static -lvmath -o /Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/build/native/macos_clang_arm64_Debug/static/calctool -g -gsplit-dwarf;)"},
+    {"id": "SA-3", "result": "PASS", "evidence": "cfg marker=cfg=_DEBUG, compile units=0, gflag=4 (cfg=Debug)"},
+    {"id": "SA-4", "result": "PASS", "evidence": "static archive: __.SYMDEF SORTED vmath_core.o vmath_report.o "},
+    {"id": "SA-5", "result": "PASS", "evidence": "export set = exactly 6 API (-fvisibility=hidden)"},
+    {"id": "SA-6", "result": "PASS", "evidence": "normalize_ local (t) in static archive"},
+    {"id": "SA-8", "result": "PASS", "evidence": "deps tree: deps/macos_clang_arm64_Debug_static.{json,md} (BFS, shared-cache classification)"},
+    {"id": "SA-7", "result": "PASS", "evidence": "all @rpath deps resolved via realpath; libSystem = shared-cache (not on disk)"},
+    {"id": "SA-9", "result": "PASS", "evidence": "libSystem.B.dylib (macOS unified runtime); MSVC CRT dimension not applicable"},
+    {"id": "SA-10", "result": "PASS", "evidence": "no LC_RPATH (static resolution)"}
+  ]
+}
