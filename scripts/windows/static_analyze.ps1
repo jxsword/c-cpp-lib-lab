@@ -1,6 +1,9 @@
 ﻿# static_analyze.ps1 —— SA-1…SA-10 三层静态分析·Windows 版（F-04-02；PLAN 5.8.1）
 # ① dumpbin /headers /exports /dependents ② llvm-readobj --coff-rich-header、Dependencies CLI（缺失即记录）
 # ③ 自实现归一判定。全部只读文件结构，不运行目标（5.8.4）。
+# 输出: reports/<tag>/<group>/<tag>_<kind>.{md,json}（SA 结论矩阵）
+#       reports/<tag>/deps/<tag>_<kind>.{json,md}（SA-8 依赖树，经 deps_tree.ps1；缺失即记录 deferred）
+#       reports/<tag>/<group>/layer1|layer2/（原始工具输出，不入库）
 # 用法: pwsh -File static_analyze.ps1 -Tag win_msvc_x64_MD_Release -Kind shared -Group native
 param(
     [Parameter(Mandatory = $true)][string]$Tag,
@@ -14,7 +17,7 @@ $root = (Resolve-Path "$PSScriptRoot\..\..").Path
 $art = Join-Path $root "build\$Group\$Tag\$Kind"
 $bin = Join-Path $art 'calctool.exe'
 $report = Join-Path $root "reports\$Tag\$Group"
-New-Item -ItemType Directory -Force -Path "$report\layer1", "$report\layer2", "$report\deps" | Out-Null
+New-Item -ItemType Directory -Force -Path "$report\layer1", "$report\layer2" | Out-Null
 
 if (-not (Test-Path $bin)) { Write-Fail "artifact not found: $bin"; exit 1 }
 
@@ -24,9 +27,11 @@ $toolset = $parts[1]
 $cfg = $parts[-1]
 $variant = if ($parts.Count -gt 4) { "$($parts[2])_$($parts[3])" } else { $parts[2] }
 $script:viol = 0
+$script:saResults = New-Object System.Collections.ArrayList
 
 function Record([string]$id, [string]$result, [string]$evidence) {
     Write-Output ("{0,-6} {1,-4} {2}" -f $id, $result, $evidence)
+    [void]$script:saResults.Add([pscustomobject]@{ id = $id; result = $result; evidence = $evidence })
     if ($result -ne 'PASS') { $script:viol = 1 }
 }
 
@@ -77,7 +82,17 @@ else { Record 'SA-1' 'FAIL' "machine not $wantMachine" }
 
 # SA-2 编译器（linker version + Rich header；dumpbin 输出值在前：<n> linker version）
 $linkerVer = [regex]::Match($hdr, '([0-9.]+) linker version').Groups[1].Value
-if ($linkerVer) { Record 'SA-2' 'PASS' "compiler: msvc linker $linkerVer" }
+# 结论 JSON / 依赖树的 compiler 字段（msys2 无 dumpbin 时按变体留 gcc/clang）
+$compiler = if ($toolset -eq 'msys2') {
+    if ($variant -match 'CLANG') { 'clang' } else { 'gcc' }
+} elseif ($toolset -eq 'clang-cl') {
+    if ($linkerVer) { "clang-cl (linker $linkerVer)" } else { 'clang-cl' }
+} elseif ($linkerVer) {
+    "msvc linker $linkerVer"
+} else {
+    'msvc (linker version not extractable)'
+}
+if ($linkerVer) { Record 'SA-2' 'PASS' "compiler: $compiler" }
 elseif ($hdr -match '^dumpbin:') { Record 'SA-2' 'PASS' 'deferred: dumpbin unavailable locally' }
 else { Record 'SA-2' 'FAIL' 'compiler version not extractable' }
 
@@ -161,15 +176,117 @@ else {
     else { Record 'SA-9' 'FAIL' '/MT but VCRUNTize140 present' }
 }
 
-# SA-7/SA-8/SA-10 依赖树相关（deps_tree.ps1 为 SA-8 核心；此处 defer 摘要）
-Record 'SA-7' 'PASS' 'via deps_tree.ps1 (dumpbin /dependents + Resolve-Path; C8 四环境独立不混链)'
-Record 'SA-8' 'PASS' 'via deps_tree.ps1 (BFS + API-Set/KnownDLL 归类)'
-Record 'SA-10' 'PASS' 'PE 搜索顺序静态展开（dumpbin /dependents + 同目录）；无 RUNPATH 概念'
+# 依赖树（deps_tree.ps1：SA-8 核心引擎；SA-7/SA-10 证据取自树输出）
+# 子脚本 exit 码不传播到调用方（pwsh 实测），失败判定靠产物文件校验
+$depsOut = Join-Path $root "reports\$Tag\deps\${Tag}_${Kind}"
+& "$PSScriptRoot\deps_tree.ps1" -Artifact $bin -OutBase $depsOut -Deptag "${Tag}_${Kind}" -Compiler $compiler -Cfg $cfg
 
+$depsDeferred = $false
+$depsData = $null
+$unresolved = 0
+$hasVmath = $false
+if (Test-Path "$depsOut.json") {
+    try { $depsData = Get-Content "$depsOut.json" -Raw | ConvertFrom-Json }
+    catch { Record 'SA-8' 'FAIL' "deps tree JSON invalid: $($_.Exception.Message)" }
+}
+if (-not $depsData) {
+    Record 'SA-8' 'FAIL' "deps tree generation failed: $depsOut.json missing or invalid"
+}
+elseif ($depsData.PSObject.Properties['error']) {
+    # deferred：dumpbin 缺失（msys2 无 vcvars），按设计「缺失即记录」
+    $depsDeferred = $true
+    Record 'SA-8' 'PASS' "deferred: dumpbin unavailable locally; deps tree deferred to CI ($depsOut.json)"
+}
+else {
+    $walk = {
+        param($n)
+        if ($null -eq $n.real -or [string]::IsNullOrEmpty("$($n.real)")) { $script:unresolved++ }
+        if ($n.name -match 'vmath\.dll$') { $script:hasVmath = $true }
+        foreach ($c in @($n.children)) { & $walk $c }
+    }
+    & $walk $depsData.tree[0]
+    Record 'SA-8' 'PASS' "deps tree: deps/${Tag}_${Kind}.{json,md}（BFS + realpath 去重 + API-Set 归类，JSON 可解析，unresolved=$unresolved）"
+}
+
+# SA-7 直接依赖 + realpath（证据取自依赖树：每个依赖均有 real 或显式 unresolved）
+if ($depsDeferred) {
+    Record 'SA-7' 'PASS' 'deferred: dumpbin unavailable locally; 依赖 realpath 由 CI runner 核验'
+}
+elseif ($Kind -eq 'shared') {
+    if ($unresolved -eq 0 -and $hasVmath) {
+        Record 'SA-7' 'PASS' 'all deps resolved via Resolve-Path（vmath.dll 在树中，同目录搜索）；unresolved=0'
+    }
+    else {
+        Record 'SA-7' 'FAIL' "unresolved=$unresolved hasVmath=$hasVmath"
+    }
+}
+else {
+    if (-not $hasVmath) {
+        Record 'SA-7' 'PASS' "no vmath.dll dependency（statically resolved）；system deps unresolved=$unresolved"
+    }
+    else {
+        Record 'SA-7' 'FAIL' 'static binary unexpectedly depends on vmath.dll'
+    }
+}
+
+# SA-10 PE 搜索顺序（静态展开 dumpbin /dependents + 同目录搜索；无 RUNPATH 概念）
+if ($depsDeferred) {
+    Record 'SA-10' 'PASS' 'deferred: dumpbin unavailable locally; PE 搜索顺序由 CI runner 核验'
+}
+else {
+    Record 'SA-10' 'PASS' 'PE 搜索顺序静态展开（dumpbin /dependents + 同目录 vmath.dll 搜索）；无 RUNPATH 概念'
+}
+
+# ── 汇总报告（③ 归一输出：Markdown 结论矩阵 + JSON 结构化结论） ──
 $md = Join-Path $report "$Tag`_$Kind.md"
-"| # | 结论 | 证据 |`n|---|---|---|`n" | Out-File $md -Encoding utf8
-# 汇总明细见执行输出；JSON 结构化报告随 deps_tree.ps1 生成
+$JSON = Join-Path $report "$Tag`_$Kind.json"
+$mdSb = New-Object System.Text.StringBuilder
+[void]$mdSb.AppendLine("# SA 结论矩阵 · $Tag / $Kind（三层静态分析，未运行目标）")
+[void]$mdSb.AppendLine('')
+[void]$mdSb.AppendLine('| # | 结论 | 证据 |')
+[void]$mdSb.AppendLine('|---|---|---|')
+foreach ($r in $script:saResults) {
+    $evMd = $r.evidence -replace '\|', '\|'
+    [void]$mdSb.AppendLine("| $($r.id) | $($r.result) | $evMd |")
+}
+[void]$mdSb.AppendLine('')
+[void]$mdSb.AppendLine('- 第①层原始输出: layer1/（dumpbin headers/exports/dependents、strings）')
+[void]$mdSb.AppendLine('- 第②层交叉验证: layer2/（llvm-readobj Rich/exports、Dependencies CLI，缺失即记录）')
+[void]$mdSb.AppendLine("- 依赖树: deps/${Tag}_${Kind}.{json,md}（BFS + realpath 去重 + 符号链接链）")
+[IO.File]::WriteAllText($md, $mdSb.ToString())
+
+$jsonSb = New-Object System.Text.StringBuilder
+[void]$jsonSb.AppendLine('{')
+[void]$jsonSb.AppendLine('  "tag": "' + $Tag + '",')
+[void]$jsonSb.AppendLine('  "kind": "' + $Kind + '",')
+[void]$jsonSb.AppendLine('  "group": "' + $Group + '",')
+[void]$jsonSb.AppendLine('  "compiler": "' + $compiler + '",')
+[void]$jsonSb.AppendLine('  "sa": [')
+for ($i = 0; $i -lt $script:saResults.Count; $i++) {
+    $r = $script:saResults[$i]
+    # JSON 转义三件套：反斜杠先转义、引号转义、控制字符剔除
+    #（证据内嵌路径/编译日志，反斜杠/控制字符会让 JSON 判 invalid）
+    $ev = $r.evidence -replace '\\', '\\'
+    $ev = $ev -replace '"', '\"'
+    $ev = $ev -replace "[\x00-\x1F]", ''
+    $comma = if ($i -lt $script:saResults.Count - 1) { ',' } else { '' }
+    [void]$jsonSb.AppendLine('    {"id": "' + $r.id + '", "result": "' + $r.result + '", "evidence": "' + $ev + '"}' + $comma)
+}
+[void]$jsonSb.AppendLine('  ]')
+[void]$jsonSb.AppendLine('}')
+[IO.File]::WriteAllText($JSON, $jsonSb.ToString())
+
+# json.tool 等价校验：ConvertFrom-Json 不过即 FAIL
+try {
+    $null = Get-Content $JSON -Raw | ConvertFrom-Json
+}
+catch {
+    Write-Fail "report JSON invalid: $($_.Exception.Message)"
+    exit 1
+}
+
 Write-Output "report: $md"
+Write-Output "report: $JSON"
 if ($script:viol -eq 0) { Write-Pass "static analysis: $Tag/$Kind"; exit 0 }
 Write-Fail "static analysis: violations present"
 exit 1
