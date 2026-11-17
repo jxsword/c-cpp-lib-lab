@@ -1,0 +1,4 @@
+{
+  "tag": "win_msys2_CLANG64_Release_shared",
+  "error": "dumpbin unavailable (vcvars required); deferred to CI"
+}
