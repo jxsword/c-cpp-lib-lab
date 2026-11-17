@@ -1,6 +1,6 @@
 # docs/REPORT.md —— c-cpp-lib-lab 总报告（v1.0.0 · Gate C）
 
-> 每节带实测证据（`reports/` 引用 + 命令 + 输出摘录 + 组合标签）。状态口径：Linux 全实跑；mac/win 脚本就绪、产物级实证由 F-09-02…04 的 dispatch 在各 OS runner 执行。
+> 每节带实测证据（`reports/` 引用 + 命令 + 输出摘录 + 组合标签）。状态口径：**80 组合全量实跑全绿**（all.yml 全量重跑 run `44064184860`，323/323 job；reports/ 42 标签目录全量入库，含 mac/win 各 OS runner 实跑证据——SA 结论 json+md、deps 依赖树、RV 运行输出）。
 
 ## 1. 分类与策略矩阵
 
