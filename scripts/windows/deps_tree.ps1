@@ -37,7 +37,8 @@ function Get-Dependents([string]$pe) {
 }
 
 function Classify([string]$name) {
-    if ($name -match '^(api|ext)-ms-win-') { return 'api-set' }
+    # api-ms/ext-ms 全族桩名（ext-ms-onecore-/win32-/mf-/windowscore- 等）
+    if ($name -match '^(api|ext)-ms-') { return 'api-set' }
     if ($name -match '^(ntdll|kernel32|kernelbase|user32|msvcrt|ucrtbase)\.dll$') { return 'known-dll' }
     if ($name -match '^(msys-2\.0|libwinpthread|libgcc|libstdc\+\+)' -and $name -match '^msys-') { return 'msys2-env' }
     return 'system'
