@@ -198,13 +198,18 @@ elseif ($depsData.PSObject.Properties['error']) {
     Record 'SA-8' 'PASS' "deferred: dumpbin unavailable locally; deps tree deferred to CI ($depsOut.json)"
 }
 else {
-    $walk = {
-        param($n)
-        if ($null -eq $n.real -or [string]::IsNullOrEmpty("$($n.real)")) { $script:unresolved++ }
-        if ($n.name -match 'vmath\.dll$') { $script:hasVmath = $true }
-        foreach ($c in @($n.children)) { & $walk $c }
+    # 迭代遍历（显式栈）：脚本块递归在深依赖链上会触发 call depth overflow（CI 实测）
+    $stack = New-Object System.Collections.Generic.Stack[object]
+    $stack.Push($depsData.tree[0])
+    while ($stack.Count -gt 0) {
+        $n = $stack.Pop()
+        if ($null -eq $n.real -or [string]::IsNullOrEmpty("$($n.real)")) { $unresolved++ }
+        if ($n.name -match 'vmath\.dll$') { $hasVmath = $true }
+        foreach ($c in @($n.children)) {
+            if ($c -is [string]) { continue }  # 防御：截断产物字符串不入栈
+            $stack.Push($c)
+        }
     }
-    & $walk $depsData.tree[0]
     Record 'SA-8' 'PASS' "deps tree: deps/${Tag}_${Kind}.{json,md}（BFS + realpath 去重 + API-Set 归类，JSON 可解析，unresolved=$unresolved）"
 }
 

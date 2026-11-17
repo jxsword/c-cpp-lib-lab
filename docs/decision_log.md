@@ -48,3 +48,11 @@
 - 影响: scripts/windows/deps_tree.ps1；scripts/windows/static_analyze.ps1；
   阶段 2 重跑后 windows 报告目录结构。
 - 记录时间 / 会话: 2026-11-17 / c-cpp-lib-lab 报告补齐执行会话。
+- 补充（CI 全量重跑反馈修复，同日）：all.yml 重跑暴露三个实现缺陷——
+  ①ext-ms-win-* 桩 DLL 未过滤（Classify 仅识别 api-ms-win-），桩名在密集
+  依赖图中不去重致树组合爆炸（466KB 截断树）；②unresolved 节点（real 为空）
+  不参与去重；③$walk 脚本块递归在深链上 call depth overflow。
+  修复：Classify 扩展 `^(api|ext)-ms-win-`；Add-Node 对 unresolved 按
+  name 去重（键 unresolved:$name）；ConvertTo-Json -Depth 16→64；
+  static_analyze.ps1 遍历改显式栈迭代。修复后沙箱深链实测树 5.2KB、
+  JSON 有效、无截断产物、无爆栈。
