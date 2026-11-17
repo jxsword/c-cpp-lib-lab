@@ -81,7 +81,7 @@ for v in MINGW64 MINGW32 CLANG64 UCRT64; do
 done
 for c in Debug Release; do
     n=$((n + 1))
-    row "$n" "win_clangcl_x64_${c}" native
+    row "$n" "win_clang-cl_x64_${c}" native
 done
 
 # ② make 32
@@ -139,7 +139,7 @@ for v in MINGW64 MINGW32 CLANG64 UCRT64; do
 done
 for c in Debug Release; do
     n=$((n + 1))
-    row "$n" "win_clangcl_x64_${c}" cmake
+    row "$n" "win_clang-cl_x64_${c}" cmake
 done
 
 cat <<'FTR'

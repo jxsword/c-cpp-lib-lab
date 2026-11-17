@@ -6,6 +6,8 @@
 
 M9 里程碑发布，**Gate C 达成，计划收官**：CI 工作流体系（16 文件：lint + _env/_combo 可复用 + 3 组 10 条可 dispatch 组合工作流 + analyze/run-output + all.yml 全量 80 编排）+ 打包三 OS（解压即用）+ 安全演示（劫持复现/加固对照/9 条防御清单）+ `docs/REPORT.md` 十章证据版总报告 + `verify_card --all` 43 卡基线全回归。Linux 侧全实跑；mac/win 产物级实证由各 OS runner dispatch 承接（R-09 收尾批量执行——默认分支硬约束）。对应 tag：v0.0.0…v0.8.0 共 9 个 + 本 v1.0.0 = 10 个里程碑 tag。
 
+- **报告全量补齐（v1.0.0 收官补发，2026-11-17）**：`_combo.yml` 上传条件放开为全组合（Debug 文本报告随全量 artifact 上传，DR-001）；windows SA 口径补齐——`deps_tree.ps1` 补 `.md` 缩进树并按 realpath/name 去重（ext-ms 全族桩过滤），`static_analyze.ps1` 接入真实取证、SA-7/SA-8/SA-10 证据实测化、补结论 `.json`（DR-002，含两轮 CI 反馈修复：依赖树组合爆炸、遍历爆栈、SA-7 直接依赖口径）；all.yml 全量重跑 **323/323 全绿**（run `44064184860`），160 个 reports-* artifact 下载合并，**reports/ 42 标签目录全量入库**（SA 结论 json+md、deps 依赖树、RV 运行输出）；新增 `scripts/tools/check_reports.sh` 完整性校验（800/800 齐备）；`summarize_reports.sh` 实测化重生成 `reports/v1.0.0/SUMMARY.md`（80 行全 ✅）；`docs/REPORT.md` 状态口径更新为 80 组合全量实跑。
+
 - F-09-09 · 汇总报告与发布：新增 `docs/REPORT.md`（10 章节 + 待拍板项 P3–P8 取值，每节带 reports/ 实测证据）；README 终版（快速开始/80 矩阵/工作流索引）；`verify_card.sh` 增 `--all` 遍历回归入口（43 卡全 PASS）。
 
 - F-09-08 · 安全演示：新增 `scripts/{linux,macos,windows}/security_hijack_demo.*`（RV 通道）——Linux **before/after 双模式实测**（before：LD_LIBRARY_PATH 前置同名库劫持面复现 + `LD_LIBRARY_PATH 优先于 RUNPATH` 静态对照结论；after：SHA256 库哈希校验 + `env -i` 干净环境自测（等价 AT_SECURE）+ rpath `$ORIGIN` 固定确认）；`docs/baseline.md` 安全章节（攻击面 6 项 + 防御清单 9 条 + AT_SECURE/SIP/Hardened Runtime 特权规则）；mac/win 演示要点版随 runner。

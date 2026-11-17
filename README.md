@@ -23,7 +23,7 @@
 | `stage2/`、`stage3/` | 三阶段语言演进实验（C++ 调 C / 纯 C++ OOP） |
 | `scripts/` | linux/macos（bash）、windows（bat + ps1）构建、分析与校验脚本 |
 | `tests/` | 断言基线、反例与测试夹具 |
-| `reports/` | 各里程碑静态分析 / 运行验证报告（`reports/<tag>/...`） |
+| `reports/` | 各里程碑静态分析 / 运行验证报告（`reports/<tag>/...`）；**80 组合全量实跑报告已入库**（42 标签目录，SA 结论 json+md、deps 依赖树、RV 运行输出） |
 | `build/`、`out/` | 构建产物（被 `.gitignore` 忽略，永不入库） |
 
 ## 快速开始
