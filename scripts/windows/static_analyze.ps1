@@ -183,7 +183,6 @@ $depsOut = Join-Path $root "reports\$Tag\deps\${Tag}_${Kind}"
 
 $depsDeferred = $false
 $depsData = $null
-$unresolved = 0
 $hasVmath = $false
 if (Test-Path "$depsOut.json") {
     try { $depsData = Get-Content "$depsOut.json" -Raw | ConvertFrom-Json }
@@ -199,35 +198,48 @@ elseif ($depsData.PSObject.Properties['error']) {
 }
 else {
     # 迭代遍历（显式栈）：脚本块递归在深依赖链上会触发 call depth overflow（CI 实测）
+    # 双口径计数：unresolvedAll=全树未解析；unresolvedDirect=根节点直接子节点未解析
+    #（SA-7「直接依赖」语义；Windows 系统链深处含 runner 镜像缺失的可选组件 DLL，
+    #  传递层未解析不阻塞直接依赖判定）
+    $unresolvedAll = 0
+    $unresolvedDirect = 0
+    $root = $depsData.tree[0]
+    if ($null -eq $root.real -or [string]::IsNullOrEmpty("$($root.real)")) { $unresolvedAll++ }
+    if ($root.name -match 'vmath\.dll$') { $hasVmath = $true }
     $stack = New-Object System.Collections.Generic.Stack[object]
-    $stack.Push($depsData.tree[0])
+    foreach ($c in @($root.children)) {
+        if ($c -is [string]) { continue }  # 防御：截断产物字符串不入栈
+        if ($null -eq $c.real -or [string]::IsNullOrEmpty("$($c.real)")) { $unresolvedAll++; $unresolvedDirect++ }
+        if ($c.name -match 'vmath\.dll$') { $hasVmath = $true }
+        $stack.Push($c)
+    }
     while ($stack.Count -gt 0) {
         $n = $stack.Pop()
-        if ($null -eq $n.real -or [string]::IsNullOrEmpty("$($n.real)")) { $unresolved++ }
+        if ($null -eq $n.real -or [string]::IsNullOrEmpty("$($n.real)")) { $unresolvedAll++ }
         if ($n.name -match 'vmath\.dll$') { $hasVmath = $true }
         foreach ($c in @($n.children)) {
-            if ($c -is [string]) { continue }  # 防御：截断产物字符串不入栈
+            if ($c -is [string]) { continue }
             $stack.Push($c)
         }
     }
-    Record 'SA-8' 'PASS' "deps tree: deps/${Tag}_${Kind}.{json,md}（BFS + realpath 去重 + API-Set 归类，JSON 可解析，unresolved=$unresolved）"
+    Record 'SA-8' 'PASS' "deps tree: deps/${Tag}_${Kind}.{json,md}（BFS + realpath 去重 + API-Set 归类，JSON 可解析，unresolved=$unresolvedAll）"
 }
 
-# SA-7 直接依赖 + realpath（证据取自依赖树：每个依赖均有 real 或显式 unresolved）
+# SA-7 直接依赖 + realpath（证据取自依赖树：根节点直接子节点均有 real 或显式 unresolved）
 if ($depsDeferred) {
     Record 'SA-7' 'PASS' 'deferred: dumpbin unavailable locally; 依赖 realpath 由 CI runner 核验'
 }
 elseif ($Kind -eq 'shared') {
-    if ($unresolved -eq 0 -and $hasVmath) {
-        Record 'SA-7' 'PASS' 'all deps resolved via Resolve-Path（vmath.dll 在树中，同目录搜索）；unresolved=0'
+    if ($unresolvedDirect -eq 0 -and $hasVmath) {
+        Record 'SA-7' 'PASS' 'direct deps resolved via Resolve-Path（vmath.dll 在树中，同目录搜索）；unresolved(direct)=0'
     }
     else {
-        Record 'SA-7' 'FAIL' "unresolved=$unresolved hasVmath=$hasVmath"
+        Record 'SA-7' 'FAIL' "unresolved(direct)=$unresolvedDirect hasVmath=$hasVmath"
     }
 }
 else {
     if (-not $hasVmath) {
-        Record 'SA-7' 'PASS' "no vmath.dll dependency（statically resolved）；system deps unresolved=$unresolved"
+        Record 'SA-7' 'PASS' "no vmath.dll dependency（statically resolved）；direct deps unresolved=$unresolvedDirect"
     }
     else {
         Record 'SA-7' 'FAIL' 'static binary unexpectedly depends on vmath.dll'
