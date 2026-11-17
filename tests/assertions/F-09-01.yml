@@ -23,9 +23,13 @@ checks:
     action: script
     args: ./scripts/tools/assert_tree.sh grepeq SA static analysis .github/workflows/_combo.yml
     expect: exit0
-  - id: A5-release-only-artifact
+  - id: A5-upload-all-combos
     action: script
-    args: ./scripts/tools/assert_tree.sh grepeq cfg == 'Release' .github/workflows/_combo.yml
+    args: ./scripts/tools/assert_tree.sh notgrep cfg.*Release .github/workflows/_combo.yml
+    expect: exit0
+  - id: A5b-upload-reports-path
+    action: script
+    args: ./scripts/tools/assert_tree.sh grepeq reports/ .github/workflows/_combo.yml
     expect: exit0
   - id: A6-scan-in-ci-step
     action: script
