@@ -1,33 +1,60 @@
 #!/usr/bin/env bash
 # summarize_reports.sh —— 汇总矩阵生成（F-09-05；A5：80 行 + 24/32/24 分组标识 + 六类差异标注）
 # 用法: summarize_reports.sh > reports/v1.0.0/SUMMARY.md
+# 状态/SA/RV 列读 reports/ 实测：SA 结论 md/json、RV 运行输出 txt 存在性。
 # 不调用 GitHub CLI（9.4 J7）。
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# 组目录段（SA 报告）与 run 文件 group 段（斜杠归一 -）
+group_dir() {
+  case "$1" in
+    native)       echo "native" ;;
+    make/gnu)     echo "make/gnu" ;;
+    make/nmake)   echo "make/nmake" ;;
+    make/msbuild) echo "make/msbuild" ;;
+    cmake)        echo "cmake" ;;
+  esac
+}
+group_safe() { echo "$1" | tr '/' '-'; }
+
+# 双形态（shared/static）文件齐备判定
+both_kinds() {
+  # both_kinds <目录> <前缀> <扩展名> —— <前缀>_shared.<ext> 与 <前缀>_static.<ext> 均存在
+  local dir="$1" prefix="$2" ext="$3"
+  [ -f "$dir/${prefix}_shared.$ext" ] && [ -f "$dir/${prefix}_static.$ext" ]
+}
+
+row()
+{
+    # row <序号> <标签> <构建方式> —— 状态/SA/RV 列读 reports/ 实测
+    local n="$1" tag="$2" way="$3"
+    local gd gs sa="—" rv="—" st="🕐 待 runner"
+    gd="$(group_dir "$way")"
+    gs="$(group_safe "$way")"
+    if both_kinds "$ROOT/reports/$tag/$gd" "$tag" "md"; then sa="✅"; fi
+    # run 文件名含 group 段：<tag>_<group-safe>_<kind>.txt
+    if [ -f "$ROOT/reports/$tag/run/${tag}_${gs}_shared.txt" ] &&
+       [ -f "$ROOT/reports/$tag/run/${tag}_${gs}_static.txt" ]; then rv="✅"; fi
+    if [ "$sa" = "✅" ] && [ "$rv" = "✅" ]; then st="✅ 实跑全绿"; fi
+    printf '| %s | %s | %s | %s | %s | %s |\n' "$n" "$tag" "$way" "$st" "$sa" "$rv"
+}
 
 # 六类差异（F-09-05 要点）
 cat <<'HDR'
 # reports/v1.0.0/SUMMARY.md —— 80 组合汇总矩阵（Gate C）
 
-> 每行 = 一个组合标签；状态列：✅ 实跑全绿 / 🕐 脚本就绪待 runner（F-09-02…04 dispatch）。**六类跨平台差异**在表后逐条标注（默认导出 / ordinal / CRT / Debug-Release 布局 / mangling / macOS 架构）。
+> 每行 = 一个组合标签；状态列：✅ 实跑全绿（SA+RV 证据链齐备）/ 🕐 待 runner。**六类跨平台差异**在表后逐条标注（默认导出 / ordinal / CRT / Debug-Release 布局 / mangling / macOS 架构）。
 
 HDR
 
 emit_group()
 {
-    local title="$1" shift_; shift
+    local title="$1"
     echo "## $title"
     echo
     echo '| # | 组合标签 | 构建方式 | 状态 | SA 报告 | RV 报告 |'
     echo '|---|---|---|---|---|---|'
-}
-
-row()
-{
-    local n="$1" tag="$2" way="$3"
-    local sa="—" rv="—" st="🕐 待 runner"
-    if [ -f "$ROOT/reports/$tag/$way/$tag"_"$kind.md" ] 2>/dev/null; then sa="✅"; fi
-    printf '| %s | %s | %s | %s | %s | %s |\n' "$n" "$tag" "$way" "$st" "$sa" "$rv"
 }
 
 # ① native 24
@@ -42,21 +69,19 @@ for os_ in linux macos windows; do
     for v in $vars; do
         for c in Debug Release; do
             n=$((n + 1))
-            printf '| %s | %s_%s_%s_%s | native | %s | — | — |\n' "$n" "$os_" "$cc" "$v" "$c" \
-                "$([ "$os_" = linux ] && echo ✅ 实跑全绿 || echo 🕐 待 runner)"
+            row "$n" "${os_}_${cc}_${v}_${c}" native
         done
     done
 done
-# msys2 + clang-cl
 for v in MINGW64 MINGW32 CLANG64 UCRT64; do
     for c in Debug Release; do
         n=$((n + 1))
-        printf '| %s | win_msys2_%s_%s | native | 🕐 待 runner | — | — |\n' "$n" "$v" "$c"
+        row "$n" "win_msys2_${v}_${c}" native
     done
 done
 for c in Debug Release; do
     n=$((n + 1))
-    printf '| %s | win_clangcl_x64_%s | native | 🕐 待 runner | — | — |\n' "$n" "$c"
+    row "$n" "win_clangcl_x64_${c}" native
 done
 
 # ② make 32
@@ -67,31 +92,26 @@ for os_ in linux macos; do
     for v in $vars; do
         for c in Debug Release; do
             n=$((n + 1))
-            printf '| %s | %s_%s_%s_%s | make/gnu | %s | — | — |\n' "$n" "$os_" "$cc" "$v" "$c" \
-                "$([ "$os_" = linux ] && echo ✅ 实跑全绿 || echo 🕐 待 runner)"
+            row "$n" "${os_}_${cc}_${v}_${c}" make/gnu
         done
     done
 done
 for v in MINGW64 MINGW32 CLANG64 UCRT64; do
     for c in Debug Release; do
         n=$((n + 1))
-        printf '| %s | win_msys2_%s_%s | make/gnu | 🕐 待 runner | — | — |\n' "$n" "$v" "$c"
+        row "$n" "win_msys2_${v}_${c}" make/gnu
+    done
+done
+for v in x86_MD x86_MT x64_MD x64_MT x64; do
+    for c in Debug Release; do
+        n=$((n + 1))
+        row "$n" "win_nmake_${v}_${c}" make/nmake
     done
 done
 for v in x86_MD x86_MT x64_MD x64_MT; do
     for c in Debug Release; do
         n=$((n + 1))
-        printf '| %s | win_nmake_%s_%s | make/nmake | 🕐 待 runner | — | — |\n' "$n" "$v" "$c"
-    done
-done
-for c in Debug Release; do
-    n=$((n + 1))
-    printf '| %s | win_nmake_x64_%s | make/nmake | 🕐 待 runner | — | — |\n' "$n" "$c"
-done
-for v in x86_MD x86_MT x64_MD x64_MT; do
-    for c in Debug Release; do
-        n=$((n + 1))
-        printf '| %s | win_msbuild_%s_%s | make/msbuild | 🕐 待 runner | — | — |\n' "$n" "$v" "$c"
+        row "$n" "win_msbuild_${v}_${c}" make/msbuild
     done
 done
 
@@ -107,20 +127,19 @@ for os_ in linux macos windows; do
     for v in $vars; do
         for c in Debug Release; do
             n=$((n + 1))
-            printf '| %s | %s_%s_%s_%s | cmake | %s | — | — |\n' "$n" "$os_" "$cc" "$v" "$c" \
-                "$([ "$os_" = linux ] && echo ✅ 实跑全绿 || echo 🕐 待 runner)"
+            row "$n" "${os_}_${cc}_${v}_${c}" cmake
         done
     done
 done
 for v in MINGW64 MINGW32 CLANG64 UCRT64; do
     for c in Debug Release; do
         n=$((n + 1))
-        printf '| %s | win_msys2_%s_%s | cmake | 🕐 待 runner | — | — |\n' "$n" "$v" "$c"
+        row "$n" "win_msys2_${v}_${c}" cmake
     done
 done
 for c in Debug Release; do
     n=$((n + 1))
-    printf '| %s | win_clangcl_x64_%s | cmake | 🕐 待 runner | — | — |\n' "$n" "$c"
+    row "$n" "win_clangcl_x64_${c}" cmake
 done
 
 cat <<'FTR'
@@ -136,5 +155,5 @@ cat <<'FTR'
 | 5 | **mangling** | Itanium `_Z*` vs MSVC `?*@@`——跨编译器不可互链 → 门面 C ABI（F-08-03） | F-08-02 A4 |
 | 6 | **macOS 架构** | arm64 主组合；x86_64 与 `lipo` universal 为附加不计数组覆盖；32 位 SKIP（10.15） | F-04-01 / 5.6 C1 |
 
-**状态口径**：✅ = Linux 侧实跑全绿（本机证据链）；🕐 = 脚本就绪，产物级实证由 F-09-02…04 的 dispatch 在各 OS runner 执行（R-09 收尾批量取证）。
+**状态口径**：✅ = SA 结论（md/json）与 RV 运行输出（txt）双形态证据在 `reports/` 齐备（本仓库入库实测）；🕐 = 证据未入库。
 FTR
