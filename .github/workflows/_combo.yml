@@ -1,7 +1,8 @@
 # _combo.yml —— reusable：单组合「构建 → RV → SA → 结论 → artifact」（F-09-01；S5/S8）
 # 五个 step 顺序：build → run(RV) → analyze(SA) → summary → artifact。
 # RV 与 SA 为不同 step、不同脚本、不同报告目录（P5/C18 隔离，A4）。
-# Debug 产物不作为发布 artifact 上传（A5：仅 Release 上传，且名标 reports-）。
+# 文本报告全量上传（含 Debug 组合）：reports-* artifact 仅含文本证据，
+# 「Debug 产物不上传」约束的是二进制产物，不约束文本报告（DR-001，A5 契约修订）。
 # 亦支持 workflow_dispatch 单独演练（卡面命令：同组合连跑两次验证 cache-hit）。
 name: _combo
 
@@ -209,7 +210,7 @@ jobs:
         shell: bash
         run: ./scripts/tools/scan_dynamic_calls.sh
 
-      # ---- step 5: 结论表 + artifact（A5：仅 Release 上传发布报告） ----
+      # ---- step 5: 结论表 + artifact（文本报告全量上传：Debug/Release 均传，DR-001） ----
       - name: Summary to job summary
         if: always() && env.FILTER_MATCH == 'true'
         shell: bash
@@ -221,13 +222,9 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload reports artifact
-        if: always() && env.FILTER_MATCH == 'true' && inputs.cfg == 'Release'
+        if: always() && env.FILTER_MATCH == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: reports-${{ inputs.os }}_${{ inputs.toolset }}_${{ inputs.variant }}_${{ inputs.cfg }}_${{ inputs.kind }}
-          path: |
-            reports/**/native/*.md
-            reports/**/native/*.txt
-            reports/**/run/*.txt
-            reports/**/deps/*.json
+          path: reports/
           if-no-files-found: ignore
