@@ -1,0 +1,18 @@
+{
+  "tag": "win_msvc_x86_MD_Release",
+  "kind": "static",
+  "group": "cmake",
+  "compiler": "msvc linker 14.51",
+  "sa": [
+    {"id": "SA-1", "result": "PASS", "evidence": "machine=x86 (variant=x86_MD)"},
+    {"id": "SA-2", "result": "PASS", "evidence": "compiler: msvc linker 14.51"},
+    {"id": "SA-3", "result": "PASS", "evidence": "cfg=Release, no pdb, marker=cfg=NDEBUG"},
+    {"id": "SA-4", "result": "PASS", "evidence": "static: vmath.lib present, no vmath.dll"},
+    {"id": "SA-5", "result": "PASS", "evidence": "deferred: static kind — exe has no export table (def contract asserted on vmath.def by verify_card)"},
+    {"id": "SA-6", "result": "PASS", "evidence": "normalize_ absent from exports"},
+    {"id": "SA-9", "result": "PASS", "evidence": "/MD variant: VCRUNTIME140.dll present"},
+    {"id": "SA-8", "result": "PASS", "evidence": "deps tree: deps/win_msvc_x86_MD_Release_static.{json,md}（BFS + realpath 去重 + API-Set 归类，JSON 可解析，unresolved=8）"},
+    {"id": "SA-7", "result": "PASS", "evidence": "no vmath.dll dependency（statically resolved）；direct deps unresolved=0"},
+    {"id": "SA-10", "result": "PASS", "evidence": "PE 搜索顺序静态展开（dumpbin /dependents + 同目录 vmath.dll 搜索）；无 RUNPATH 概念"}
+  ]
+}
