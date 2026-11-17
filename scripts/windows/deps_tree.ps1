@@ -1,6 +1,8 @@
 ﻿# deps_tree.ps1 —— SA-8 递归依赖树·Windows 版（F-04-02；PLAN 5.8.3）
 # dumpbin /dependents 静态读取；Resolve-Path 解析；API-Set 与 KnownDLL 归类；
 # C8：msys2 四环境依赖不交叉（msys-2.0.dll / libwinpthread 等按变体归类 bundle-env）。
+# 输出：<基名>.json（嵌套树 + symlinkChains + apiSets + dedup，按 realpath 去重）
+#       + <基名>.md（缩进树，对齐 linux deps_tree.sh；dumpbin 缺失即记录 deferred）。
 # FORBIDDEN: 刻意不使用执行类依赖解析（5.8.4），仅静态读取文件结构。
 param(
     [Parameter(Mandatory = $true)][string]$Artifact,
@@ -18,7 +20,13 @@ $dumpbin = Get-Command dumpbin -ErrorAction SilentlyContinue
 if (-not $dumpbin) {
     @{ tag = $Deptag; error = 'dumpbin unavailable (vcvars required); deferred to CI' } |
         ConvertTo-Json | Set-Content "$OutBase.json"
+    @(
+        "# 依赖树 · $Deptag —— deferred"
+        ""
+        "dumpbin unavailable（vcvars 环境缺失）；依赖树由 CI runner 在 vcvars 环境生成。"
+    ) | Set-Content "$OutBase.md"
     Write-Output "deps_tree: $OutBase.json (deferred)"
+    Write-Output "deps_tree: $OutBase.md (deferred)"
     exit 0
 }
 
@@ -59,9 +67,14 @@ function Test-Symlink([string]$p) {
     return ($item -and $item.LinkType)
 }
 
+# 递归发射节点：按 realpath 去重（PLAN 5.8.3：关联数组按 realpath 去重）。
+# 已展开的 realpath → 返回 dedup 节点（不递归，标记 dedup=true）；未展开 → 展开依赖。
 function Add-Node([string]$name, [string]$path, [string]$indent) {
-    if ($seen.ContainsKey($name)) { return }
-    $seen[$name] = $true
+    if ($path -and $seen.ContainsKey($path)) {
+        $origin = if ($path -like "$env:SystemRoot*") { 'system' } else { 'bundle' }
+        return [ordered]@{ name = $name; logical = $name; real = $path; origin = $origin; dedup = $true; children = @() }
+    }
+    if ($path) { $seen[$path] = $true }
     $origin = if ($path -like "$env:SystemRoot*") { 'system' } elseif ($path) { 'bundle' } else { 'unresolved' }
     $node = [ordered]@{ name = $name; logical = $name; real = $path; origin = $origin; children = @() }
     if ($path -and (Test-Path $path)) {
@@ -70,13 +83,40 @@ function Add-Node([string]$name, [string]$path, [string]$indent) {
             if ($cls -eq 'api-set') { $tree.apiSets += $d; continue }
             $rp = Resolve-Dep $d (Split-Path -Parent $path)
             if ($rp -and (Test-Symlink $rp)) { $tree.symlinkChains += @($d, $rp) }
-            Add-Node $d $rp "$indent    "
+            $node.children += (Add-Node $d $rp "$indent    ")
         }
     }
-    $tree.tree += $node
+    return $node
 }
 
-Add-Node ([IO.Path]::GetFileName($Artifact)) $Artifact ''
-$tree | ConvertTo-Json -Depth 8 | Set-Content "$OutBase.json"
+# .md 缩进树输出（对齐 linux deps_tree.sh 口径：├─/└─ 连接符 + [origin]/[dedup] + real=）
+function Emit-TreeNode([hashtable]$node, [string]$indent, [string]$suffix) {
+    $connector = if ($suffix -eq ',') { '├─' } else { '└─' }
+    if ($node.ContainsKey('dedup') -and $node.dedup) {
+        $label = '[dedup]'
+    }
+    else {
+        $label = "[$($node.origin)]"
+    }
+    $real = if ($null -eq $node.real) { 'null' } else { $node.real }
+    Add-Content -LiteralPath $MDFile -Value ("{0}{1} {2} {3} real={4}" -f $indent, $connector, $node.name, $label, $real)
+    $i = 0
+    $total = @($node.children).Count
+    foreach ($c in @($node.children)) {
+        $i++
+        $suf = if ($i -lt $total) { ',' } else { '' }
+        Emit-TreeNode $c "$indent    " $suf
+    }
+}
+
+$rootNode = Add-Node ([IO.Path]::GetFileName($Artifact)) $Artifact ''
+$tree.tree = @($rootNode)
+$tree.dedup = @($seen.Keys | Where-Object { $_ } | Sort-Object)
+$tree | ConvertTo-Json -Depth 16 | Set-Content "$OutBase.json"
+
+$MDFile = "$OutBase.md"
+[IO.File]::WriteAllText($MDFile, '')
+if ($rootNode) { Emit-TreeNode $rootNode '' '' }
 Write-Output "deps_tree: $OutBase.json"
+Write-Output "deps_tree: $OutBase.md"
 exit 0
