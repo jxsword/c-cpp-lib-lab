@@ -1,0 +1,34 @@
+===== RV-1 =====
+$ /Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/build/cmake/macos_clang_arm64_Debug/static/calctool --self-test
+self-test: add OK
+self-test: dot OK
+self-test: dim-error OK
+self-test: null-error OK
+self-test: info OK
+self-test: logger OK
+self-test: ALL OK
+----- exit code: 0 (expect 0) -----
+
+===== RV-2 =====
+$ /Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/build/cmake/macos_clang_arm64_Debug/static/calctool info
+vmath build info: bits=64 datamodel=LP64 sizeof(long)=8 sizeof(void*)=8 compiler=clang Apple LLVM 17.0.0 (clang-1700.0.13.5) cfg=no-NDEBUG iterator_debug_level=n/a libform=static crt=default-dynamic(libc);
+----- exit code: 0 (expect 0) -----
+
+===== RV-3 =====
+$ /Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/build/cmake/macos_clang_arm64_Debug/static/calctool add 1.5 2.5
+[calctool] add(1.5,2.5) = 4
+----- exit code: 0 (expect 0) -----
+
+===== RV-3 =====
+$ /Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/build/cmake/macos_clang_arm64_Debug/static/calctool dot 1,2,3 4,5,6
+[calctool] dot(len=3) = 32
+----- exit code: 0 (expect 0) -----
+
+===== RV-3 =====
+$ /Users/runner/work/c-cpp-lib-lab/c-cpp-lib-lab/build/cmake/macos_clang_arm64_Debug/static/calctool dot 1,2 1,2,3
+dot: dimension mismatch (2 vs 3), error=VMATH_E_DIM
+----- exit code: 2 (expect 2) -----
+
+===== RV-4 =====
+(static form: dynamic loading demo not applicable)
+

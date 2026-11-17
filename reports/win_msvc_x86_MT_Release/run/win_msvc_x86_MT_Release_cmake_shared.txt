@@ -1,0 +1,45 @@
+===== RV-1 =====
+> D:\a\c-cpp-lib-lab\c-cpp-lib-lab\build\cmake\win_msvc_x86_MT_Release\shared\calctool.exe --self-test
+self-test: add OK
+self-test: dot OK
+self-test: dim-error OK
+self-test: null-error OK
+self-test: info OK
+self-test: logger OK
+self-test: ALL OK
+----- exit code: 0 (expect 0) -----
+
+===== RV-2 =====
+> D:\a\c-cpp-lib-lab\c-cpp-lib-lab\build\cmake\win_msvc_x86_MT_Release\shared\calctool.exe info
+vmath build info: bits=32 datamodel=ILP32 sizeof(long)=4 sizeof(void*)=4 compiler=msvc 1951 cfg=NDEBUG iterator_debug_level=n/a libform=shared-build(dll) crt=static;
+----- exit code: 0 (expect 0) -----
+
+===== RV-3 =====
+> D:\a\c-cpp-lib-lab\c-cpp-lib-lab\build\cmake\win_msvc_x86_MT_Release\shared\calctool.exe add 1.5 2.5
+[calctool] add(1.5,2.5) = 4
+----- exit code: 0 (expect 0) -----
+
+===== RV-3 =====
+> D:\a\c-cpp-lib-lab\c-cpp-lib-lab\build\cmake\win_msvc_x86_MT_Release\shared\calctool.exe dot 1,2,3 4,5,6
+[calctool] dot(len=3) = 32
+----- exit code: 0 (expect 0) -----
+
+===== RV-3 =====
+> D:\a\c-cpp-lib-lab\c-cpp-lib-lab\build\cmake\win_msvc_x86_MT_Release\shared\calctool.exe dot 1,2 1,2,3
+dot: dimension mismatch (2 vs 3), error=VMATH_E_DIM
+----- exit code: 2 (expect 2) -----
+
+===== RV-4 =====
+> D:\a\c-cpp-lib-lab\c-cpp-lib-lab\build\cmake\win_msvc_x86_MT_Release\shared\calctool.exe --dynamic D:\a\c-cpp-lib-lab\c-cpp-lib-lab\build\cmake\win_msvc_x86_MT_Release\shared\vmath.dll add 1 2
+--dynamic: loaded D:\a\c-cpp-lib-lab\c-cpp-lib-lab\build\cmake\win_msvc_x86_MT_Release\shared\vmath.dll, named lookups 5/6 (+build_info contract check below)
+--dynamic: GetProcAddress(h, "vmath_build_info") == NULL as expected (NONAME)
+--dynamic: GetProcAddress(h, MAKEINTRESOURCEA(5)) resolved vmath_build_info
+[calctool] add(1,2) = 3
+--dynamic: library unloaded (no dangling calls)
+----- exit code: 0 (expect 0) -----
+
+===== RV-4 =====
+> D:\a\c-cpp-lib-lab\c-cpp-lib-lab\build\cmake\win_msvc_x86_MT_Release\shared\calctool.exe --dynamic C:\nonexistent\vmath.dll add 1 2
+--dynamic: cannot load 'C:\nonexistent\vmath.dll' (GetLastError=126)
+----- exit code: 2 (expect 2) -----
+
